@@ -36,6 +36,11 @@ io.on("connection", (socket) => {
     socket.emit("currentPlayers", players);
     io.emit("newPlayer", players[socket.id]);
 
+    socket.on("fireCannon", (data) => {
+        console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
+        io.emit("cannonFired", data); // 🔥 Envia para TODOS os jogadores
+    });
+
     // 🔥 Processa o ataque recebido
     socket.on("attack", (data) => {
         let { attacker, target } = data;
