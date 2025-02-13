@@ -120,12 +120,14 @@
         const socket = io('https://pompeii.up.railway.app/'); // Conectar ao servidor WebSocket
         const gameContainer = document.getElementById("game-container");
 
-        let speed = 2;
+        let speed = 3;
         let hp = 100;
         let attackRange = 300;
         let damage = 12;
         let selectedTarget = null;
         let lastSentTime = 0;
+        let lastAttackTime = 0; // 🔥 Última vez que o jogador atacou
+
         let playerHealth = {};
         let players = {};
 
@@ -313,18 +315,6 @@
 
 
 
-
-
-        function isInAttackRange() {
-            let boatX = boat.offsetLeft;
-            let boatY = boat.offsetTop;
-            let targetX = target.offsetLeft;
-            let targetY = target.offsetTop;
-
-            let distance = Math.sqrt((targetX - boatX) ** 2 + (targetY - boatY) ** 2);
-            return distance <= attackRange;
-        }
-
        // 🔥 Clique em um barco para selecionar como alvo
         document.addEventListener("click", (event) => {
             let clickedBoat = event.target.closest(".boat"); // Verifica se clicou em um barco
@@ -334,13 +324,43 @@
             }
         });
 
-        // 🔥 Detecta a tecla "A" ou "Espaço" para atacar
         document.addEventListener("keydown", (event) => {
-            if ((event.code === "KeyA" || event.code === "Space") && selectedTarget) {
-                console.log(`🔥 Atacando ${selectedTarget}`);
-                fireCannonball(selectedTarget);
+                if ((event.code === "KeyA" || event.code === "Space") && selectedTarget) {
+                    let currentTime = Date.now();
+
+                    // 🔥 Verifica se o tempo de recarga passou (1 segundo)
+                    if (currentTime - lastAttackTime < 1000) {
+                        console.log("⏳ Recarga em andamento...");
+                        return;
+                    }
+
+                    // 🔥 Verifica se o alvo está dentro da distância máxima
+                    if (!isTargetInRange(selectedTarget)) {
+                        console.log("🚫 O alvo está muito longe para atacar!");
+                        return;
+                    }
+
+                    console.log(`🔥 Atacando ${selectedTarget}`);
+                    fireCannonball(selectedTarget);
+                    lastAttackTime = currentTime; // 🔥 Atualiza o tempo do último ataque
+                }
+            });
+
+            // 🔥 Função para verificar se o alvo está dentro do alcance
+            function isTargetInRange(targetId) {
+                let attackerBoat = document.getElementById(`boat-${socket.id}`);
+                let targetBoat = document.getElementById(`boat-${targetId}`);
+
+                if (!attackerBoat || !targetBoat) return false;
+
+                let attackerX = attackerBoat.offsetLeft;
+                let attackerY = attackerBoat.offsetTop;
+                let targetX = targetBoat.offsetLeft;
+                let targetY = targetBoat.offsetTop;
+
+                let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
+                return distance <= attackRange; // 🔥 Retorna true se estiver dentro do alcance
             }
-        });
 
         socket.on("cannonFired", (data) => {
                 console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
