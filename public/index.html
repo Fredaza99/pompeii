@@ -422,8 +422,7 @@
             setTimeout(() => explosion.remove(), 500);
         }
 
-      s// 🔥 Atualiza a vida do jogador atacado
-        socket.on("updateHealth", (data) => {
+      socket.on("updateHealth", (data) => {
             let healthBar = document.getElementById(`health-${data.target}`);
             if (healthBar) {
                 healthBar.style.width = `${data.health}%`;
