@@ -50,11 +50,23 @@ io.on("connection", (socket) => {
     });
 
 
-    // 🔥 Processa o ataque recebido
     socket.on("attack", (data) => {
         let { attacker, target } = data;
 
-        if (players[target]) {
+        if (players[attacker] && players[target]) {
+            let attackerX = players[attacker].x;
+            let attackerY = players[attacker].y;
+            let targetX = players[target].x;
+            let targetY = players[target].y;
+
+            let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
+
+            // 🔥 Verifica se o alvo está dentro do alcance
+            if (distance > attackRange) {
+                console.log(`🚫 ${attacker} tentou atacar ${target}, mas estava muito longe!`);
+                return;
+            }
+
             playerHealth[target] -= 10; // Cada tiro causa 10 de dano
             console.log(`🔥 ${attacker} atacou ${target}, vida restante: ${playerHealth[target]}`);
 
