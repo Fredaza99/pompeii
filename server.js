@@ -56,6 +56,8 @@ io.on("connection", (socket) => {
 
             // 🔥 Garante que a atualização da vida seja enviada para todos os jogadores
             io.emit("updateHealth", { target, health: playerHealth[target] });
+            console.log(`📢 Enviando atualização de vida para ${target}: ${playerHealth[target]}%`);
+
 
             if (playerHealth[target] <= 0) {
                 console.log(`💀 ${target} foi destruído!`);
