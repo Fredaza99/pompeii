@@ -28,21 +28,6 @@ io.on("connection", (socket) => {
 
     socket.emit("currentPlayers", players);
     io.emit("newPlayer", players[socket.id]);
-
-    socket.on("fireCannon", (data) => {
-        console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
-        io.emit("cannonFired", data);
-    });
-
-    socket.on("move", (data) => {
-        if (players[data.id]) {
-            players[data.id].x = data.x;
-            players[data.id].y = data.y;
-            io.emit("playerMoved", { id: data.id, x: data.x, y: data.y });
-        }
-    });
-
-    // 🔥 Correção: O servidor reduz corretamente a vida do alvo
     socket.on("attack", (data) => {
         let { attacker, target } = data;
 
@@ -60,6 +45,20 @@ io.on("connection", (socket) => {
             }
         }
     });
+
+    socket.on("fireCannon", (data) => {
+        console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
+        io.emit("cannonFired", data);
+    });
+
+    socket.on("move", (data) => {
+        if (players[data.id]) {
+            players[data.id].x = data.x;
+            players[data.id].y = data.y;
+            io.emit("playerMoved", { id: data.id, x: data.x, y: data.y });
+        }
+    });
+
 
     socket.on("disconnect", () => {
         console.log(`Jogador desconectado: ${socket.id}`);
