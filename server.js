@@ -31,49 +31,48 @@ io.on("connection", (socket) => {
     
     
     socket.on("attack", (data) => {
-        console.log(`🔥 Servidor recebeu ataque: ${data.attacker} atacando ${data.target}`);
+        let { attacker, target } = data;
 
-        // 🔥 Verifica se o atacante tem um ID válido
-        if (!data.attacker || !players[data.attacker]) {
-            console.error(`❌ ERRO: Atacante inválido! ID recebido: ${data.attacker}`);
+        console.log(`🔥 Servidor recebeu ataque: ${attacker} atacando ${target}`);
+
+        if (!players[attacker] || !players[target]) {
+            console.error(`❌ ERRO: Atacante ou alvo inválidos!`);
             return;
         }
 
-        let { attacker, target } = data;
+        let attackerX = players[attacker].x;
+        let attackerY = players[attacker].y;
+        let targetX = players[target].x;
+        let targetY = players[target].y;
 
-        if (players[attacker] && players[target]) {
-            let attackerX = players[attacker].x;
-            let attackerY = players[attacker].y;
-            let targetX = players[target].x;
-            let targetY = players[target].y;
+        let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
 
-            let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
+        if (distance > attackRange) {
+            console.log(`🚫 ${attacker} tentou atacar ${target}, mas estava muito longe!`);
+            return;
+        }
 
-            if (distance > attackRange) {
-                console.log(`🚫 ${attacker} tentou atacar ${target}, mas estava muito longe!`);
-                return;
-            }
+        if (playerHealth[target] === undefined) {
+            console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
+            playerHealth[target] = 100;
+        }
 
-            if (playerHealth[target] === undefined) {
-                console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
-                playerHealth[target] = 100;
-            }
+        // 🔥 Criar a animação da bala para todos os jogadores
+        io.emit("cannonFired", { attacker, target });
 
-            playerHealth[target] -= 10;
-            console.log(`💥 ${attacker} atacou ${target}, vida agora: ${playerHealth[target]}%`);
+        playerHealth[target] -= 10;
+        console.log(`💥 ${attacker} atacou ${target}, vida agora: ${playerHealth[target]}%`);
 
-            io.emit("updateHealth", { target, health: playerHealth[target] });
+        io.emit("updateHealth", { target, health: playerHealth[target] });
 
-            if (playerHealth[target] <= 0) {
-                console.log(`💀 ${target} foi destruído!`);
-                io.emit("playerDestroyed", target);
-                delete players[target];
-                delete playerHealth[target];
-            }
-        } else {
-            console.log(`🚨 ERRO: Jogador atacado ${target} não encontrado no servidor!`);
+        if (playerHealth[target] <= 0) {
+            console.log(`💀 ${target} foi destruído!`);
+            io.emit("playerDestroyed", target);
+            delete players[target];
+            delete playerHealth[target];
         }
     });
+
 
 
     socket.on("fireCannon", (data) => {
