@@ -374,59 +374,75 @@
             });
 
             function createCannonball(attackerId, targetId) {
-                let attackerBoat = document.getElementById(`boat-${attackerId}`);
-                let targetBoat = document.getElementById(`boat-${targetId}`);
+                    let attackerBoat = document.getElementById(`boat-${attackerId}`);
+                    let targetBoat = document.getElementById(`boat-${targetId}`);
 
-                if (!attackerBoat || !targetBoat) return;
+                    if (!attackerBoat || !targetBoat) return;
 
-                let boatX = attackerBoat.offsetLeft + 40;
-                let boatY = attackerBoat.offsetTop + 40;
-                let targetX = targetBoat.offsetLeft + 40;
-                let targetY = targetBoat.offsetTop + 40;
+                    let boatX = attackerBoat.offsetLeft + 40;
+                    let boatY = attackerBoat.offsetTop + 40;
+                    let targetX = targetBoat.offsetLeft + 40;
+                    let targetY = targetBoat.offsetTop + 40;
 
-                let dx = targetX - boatX;
-                let dy = targetY - boatY;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                let speed = 6;
-                let steps = distance / speed;
-                let stepX = dx / steps;
-                let stepY = dy / steps;
+                    let dx = targetX - boatX;
+                    let dy = targetY - boatY;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let speed = 6;
+                    let steps = distance / speed;
+                    let stepX = dx / steps;
+                    let stepY = dy / steps;
 
-                let x = boatX;
-                let y = boatY;
+                    let x = boatX;
+                    let y = boatY;
 
-                let cannonball = document.createElement("div");
-                cannonball.className = "cannonball";
-                gameContainer.appendChild(cannonball);
-
-                function moveBall() {
-                    x += stepX;
-                    y += stepY;
+                    let cannonball = document.createElement("div");
+                    cannonball.className = "cannonball";
+                    cannonball.style.position = "absolute";
                     cannonball.style.left = `${x}px`;
                     cannonball.style.top = `${y}px`;
+                    cannonball.style.width = "15px";
+                    cannonball.style.height = "15px";
+                    cannonball.style.background = "black";
+                    cannonball.style.borderRadius = "50%";
 
-                    let currentDistance = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
-                    if (currentDistance < 10) {
-                        gameContainer.removeChild(cannonball);
-                        createExplosion(targetX, targetY);
-                        return;
+                    gameContainer.appendChild(cannonball);
+
+                    function moveBall() {
+                        x += stepX;
+                        y += stepY;
+                        cannonball.style.left = `${x}px`;
+                        cannonball.style.top = `${y}px`;
+
+                        let currentDistance = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
+                        if (currentDistance < 10) {
+                            gameContainer.removeChild(cannonball);
+                            createExplosion(targetX, targetY);
+                            return;
+                        }
+
+                        requestAnimationFrame(moveBall);
                     }
 
-                    requestAnimationFrame(moveBall);
+                    moveBall();
                 }
 
-                moveBall();
-            }
-
-        // 🔥 Criar explosão ao atingir o alvo
         function createExplosion(x, y) {
-            let explosion = document.createElement("div");
-            explosion.className = "explosion";
-            explosion.style.left = `${x}px`;
-            explosion.style.top = `${y}px`;
-            gameContainer.appendChild(explosion);
-            setTimeout(() => explosion.remove(), 500);
-        }
+                let explosion = document.createElement("div");
+                explosion.className = "explosion";
+                explosion.style.position = "absolute";
+                explosion.style.left = `${x}px`;
+                explosion.style.top = `${y}px`;
+                explosion.style.width = "30px";
+                explosion.style.height = "30px";
+                explosion.style.background = "orange";
+                explosion.style.borderRadius = "50%";
+                explosion.style.boxShadow = "0 0 20px red";
+                explosion.style.animation = "explode 0.5s ease-out";
+
+                gameContainer.appendChild(explosion);
+
+                setTimeout(() => explosion.remove(), 500);
+            }
 
    socket.on("updateHealth", (data) => {
         console.log(`🩸 Cliente recebeu atualização de vida: ${data.target} agora tem ${data.health}%`);
