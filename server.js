@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 // 🔥 Armazena os jogadores conectados
 let players = {};
 let playerHealth = {}; // Armazena a vida dos jogadores
-
+const attackRange = 300;
 
 io.on("connection", (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
