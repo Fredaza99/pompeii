@@ -106,14 +106,7 @@
 </head>
 <body>
     <div id="game-container">
-        <div id="boat">
-
-            <div class="health-bar-container">
-                <div class="health-icon"></div>
-                <div class="health-bar" id="boat-health"></div>
-            </div>
             
-        </div>
         <div id="target">
             <div class="health-bar-container">
                 <div class="health-bar" id="target-health"></div>
@@ -149,36 +142,55 @@
             });
         }
 
-        // 🔥 Criar barco para cada jogador
-        function createBoat(playerId, x, y) {
-            if (!document.getElementById(`boat-${playerId}`)) {
-                let boat = document.createElement("div");
-                boat.classList.add("boat");
-                boat.id = `boat-${playerId}`;
-                boat.style.left = `${x}px`;
-                boat.style.top = `${y}px`;
-                boat.style.backgroundImage = "url('images/e63b78995b51eee960753a5a53e2484653c70752.png')";
-                boat.style.width = "80px";
-                boat.style.height = "80px";
-                boat.style.position = "absolute";
-                boat.style.backgroundSize = "cover";
-                gameContainer.appendChild(boat);
+        // 🔥 Criar barco para cada jogador com os mesmos atributos do barco original
+            function createBoat(playerId, x, y) {
+                if (!document.getElementById(`boat-${playerId}`)) {
+                    let boat = document.createElement("div");
+                    boat.classList.add("boat");
+                    boat.id = `boat-${playerId}`;
+                    boat.style.left = `${x}px`;
+                    boat.style.top = `${y}px`;
+                    boat.style.backgroundImage = "url('images/e63b78995b51eee960753a5a53e2484653c70752.png')";
+                    boat.style.width = "80px";
+                    boat.style.height = "80px";
+                    boat.style.position = "absolute";
+                    boat.style.backgroundSize = "cover";
+                    boat.style.transformOrigin = "center";
+
+                    // 🔥 Criar barra de vida dentro do barco
+                    let healthBarContainer = document.createElement("div");
+                    healthBarContainer.classList.add("health-bar-container");
+
+                    let healthIcon = document.createElement("div");
+                    healthIcon.classList.add("health-icon");
+
+                    let healthBar = document.createElement("div");
+                    healthBar.classList.add("health-bar");
+                    healthBar.id = `health-${playerId}`;
+                    healthBar.style.width = "100%"; // Começa cheia
+
+                    healthBarContainer.appendChild(healthIcon);
+                    healthBarContainer.appendChild(healthBar);
+                    boat.appendChild(healthBarContainer);
+
+                    gameContainer.appendChild(boat);
+                }
             }
-        }
+
 
         // 🔥 Atualiza posição do barco
         function updateBoatPosition(playerId, x, y) {
-            let boat = document.getElementById(`boat-${playerId}`);
-            if (boat) {
-                boat.style.left = `${x}px`;
-                boat.style.top = `${y}px`;
+                let boat = document.getElementById(`boat-${playerId}`);
+                if (boat) {
+                    boat.style.left = `${x}px`;
+                    boat.style.top = `${y}px`;
+                }
             }
-        }
 
-        // Conexão WebSocket
         socket.on('connect', () => {
-            console.log("Conectado ao servidor WebSocket!");
-        });
+                console.log("Conectado ao servidor WebSocket!");
+                createBoat(socket.id, Math.random() * 800, Math.random() * 600); // Cria o próprio barco do jogador
+            });
         socket.on('disconnect', () => {
             console.log("Desconectado do servidor!");
         });
