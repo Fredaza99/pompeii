@@ -66,10 +66,16 @@ io.on("connection", (socket) => {
                 return;
             }
 
-            playerHealth[target] -= 10; // 🔥 Reduz a vida do alvo
-            console.log(`🔥 ${attacker} atacou ${target}, nova vida: ${playerHealth[target]}`);
+            // 🔥 Verifica se a vida do alvo existe, senão inicializa
+            if (!playerHealth[target]) {
+                console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
+                playerHealth[target] = 100;
+            }
 
-            io.emit("updateHealth", { target, health: playerHealth[target] }); // 🔥 Envia a atualização para todos os clientes
+            playerHealth[target] -= 10; // 🔥 Reduz a vida do alvo
+            console.log(`💥 ${attacker} causou dano em ${target}, vida agora: ${playerHealth[target]}%`);
+
+            io.emit("updateHealth", { target, health: playerHealth[target] });
 
             if (playerHealth[target] <= 0) {
                 console.log(`💀 ${target} foi destruído!`);
@@ -79,6 +85,7 @@ io.on("connection", (socket) => {
             }
         }
     });
+
 
 
     socket.on("disconnect", () => {
