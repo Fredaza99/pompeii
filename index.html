@@ -125,83 +125,38 @@
 
 
     <script>
-        const boat = document.getElementById("boat");
+      const boat = document.getElementById("boat");
         const target = document.getElementById("target");
         const boatHealthBar = document.getElementById("boat-health");
         const targetHealthBar = document.getElementById("target-health");
         const socket = io('https://pompeii.up.railway.app/'); // Conectar ao servidor WebSocket
         const gameContainer = document.getElementById("game-container");
 
-        // Variáveis existentes no jogo
         let speed = 2;
         let hp = 100;
         let attackRange = 300;
         let damage = 12;
-    
-    
-        function updatePlayers(players) {
-        Object.keys(players).forEach((id) => {
-            if (!document.getElementById(`boat-${id}`)) {
-                createBoat(id, players[id].x, players[id].y);
-            } else {
-                updateBoatPosition(id, players[id].x, players[id].y);
-            }
-        });
-    }
-
-        socket.on('connect', () => {
-            console.log("Conectado ao servidor WebSocket!");
-        });
-        socket.on('disconnect', () => {
-            console.log("Desconectado do servidor!");
-        });
         let players = {};
-        // Atualiza a lista de jogadores ao entrar
 
-    
-
-        socket.on('currentPlayers', (serverPlayers) => {
-            players = serverPlayers;
-            console.log('Jogadores conectados:', players);
-        });
-        // Adiciona um novo jogador
-        socket.on('newPlayer', (player) => {
-                players[player.id] = player;
-                updatePlayers(players);
-            });
-        // Atualiza a posição de um jogador
-       socket.on('playerMoved', (data) => {
-            if (players[data.id]) {
-                players[data.id].x = data.x;
-                players[data.id].y = data.y;
-                updateBoatPosition(data.id, data.x, data.y);
-            }
-        });
-
-        socket.on('playerDisconnected', (playerId) => {
-                let boat = document.getElementById(`boat-${playerId}`);
-                if (boat) {
-                    boat.remove();
+        // 🔥 Função para atualizar jogadores na tela
+        function updatePlayers(players) {
+            Object.keys(players).forEach((id) => {
+                if (!document.getElementById(`boat-${id}`)) {
+                    createBoat(id, players[id].x, players[id].y);
+                } else {
+                    updateBoatPosition(id, players[id].x, players[id].y);
                 }
-                delete players[playerId];
             });
+        }
 
-
-            socket.on('currentPlayers', (serverPlayers) => {
-                    players = serverPlayers;
-                    updatePlayers(players);
-                });
-
-
-
-       
+        // 🔥 Criar barco para cada jogador
         function createBoat(playerId, x, y) {
             if (!document.getElementById(`boat-${playerId}`)) {
                 let boat = document.createElement("div");
                 boat.classList.add("boat");
+                boat.id = `boat-${playerId}`;
                 boat.style.left = `${x}px`;
                 boat.style.top = `${y}px`;
-                boat.id = `boat-${playerId}`;
                 boat.style.backgroundImage = "url('images/e63b78995b51eee960753a5a53e2484653c70752.png')";
                 boat.style.width = "80px";
                 boat.style.height = "80px";
@@ -210,6 +165,54 @@
                 gameContainer.appendChild(boat);
             }
         }
+
+        // 🔥 Atualiza posição do barco
+        function updateBoatPosition(playerId, x, y) {
+            let boat = document.getElementById(`boat-${playerId}`);
+            if (boat) {
+                boat.style.left = `${x}px`;
+                boat.style.top = `${y}px`;
+            }
+        }
+
+        // Conexão WebSocket
+        socket.on('connect', () => {
+            console.log("Conectado ao servidor WebSocket!");
+        });
+        socket.on('disconnect', () => {
+            console.log("Desconectado do servidor!");
+        });
+
+        // 🔥 Recebe a lista de jogadores ao conectar
+        socket.on('currentPlayers', (serverPlayers) => {
+            players = serverPlayers;
+            console.log('Jogadores conectados:', players);
+            updatePlayers(players);
+        });
+
+        // 🔥 Quando um novo jogador entra
+        socket.on('newPlayer', (player) => {
+            players[player.id] = player;
+            updatePlayers(players);
+        });
+
+        // 🔥 Quando um jogador se move
+        socket.on('playerMoved', (data) => {
+            if (players[data.id]) {
+                players[data.id].x = data.x;
+                players[data.id].y = data.y;
+                updateBoatPosition(data.id, data.x, data.y);
+            }
+        });
+
+        // 🔥 Quando um jogador sai
+        socket.on('playerDisconnected', (playerId) => {
+            let boat = document.getElementById(`boat-${playerId}`);
+            if (boat) {
+                boat.remove();
+            }
+            delete players[playerId];
+        });
 
         // Disparo de canhão
         socket.on('cannonFired', (data) => {
