@@ -395,15 +395,11 @@
                     let x = boatX;
                     let y = boatY;
 
+                    // 🔥 Criar a bala de canhão e aplicar classe CSS
                     let cannonball = document.createElement("div");
-                    cannonball.className = "cannonball";
-                    cannonball.style.position = "absolute";
+                    cannonball.classList.add("cannonball");
                     cannonball.style.left = `${x}px`;
                     cannonball.style.top = `${y}px`;
-                    cannonball.style.width = "15px";
-                    cannonball.style.height = "15px";
-                    cannonball.style.background = "black";
-                    cannonball.style.borderRadius = "50%";
 
                     gameContainer.appendChild(cannonball);
 
@@ -428,21 +424,15 @@
 
         function createExplosion(x, y) {
                 let explosion = document.createElement("div");
-                explosion.className = "explosion";
-                explosion.style.position = "absolute";
+                explosion.classList.add("explosion");
                 explosion.style.left = `${x}px`;
                 explosion.style.top = `${y}px`;
-                explosion.style.width = "30px";
-                explosion.style.height = "30px";
-                explosion.style.background = "orange";
-                explosion.style.borderRadius = "50%";
-                explosion.style.boxShadow = "0 0 20px red";
-                explosion.style.animation = "explode 0.5s ease-out";
 
                 gameContainer.appendChild(explosion);
 
                 setTimeout(() => explosion.remove(), 500);
             }
+
 
    socket.on("updateHealth", (data) => {
         console.log(`🩸 Cliente recebeu atualização de vida: ${data.target} agora tem ${data.health}%`);
