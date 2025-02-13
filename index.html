@@ -166,6 +166,17 @@
             delete players[playerId];
             updatePlayers();
         });
+
+        function updatePlayers(players) {
+                Object.keys(players).forEach((id) => {
+                    if (!document.getElementById(`boat-${id}`)) {
+                        createBoat(id, players[id].x, players[id].y);
+                    } else {
+                        updateBoatPosition(id, players[id].x, players[id].y);
+                    }
+                });
+            }
+
        
         function createBoat(playerId, x, y) {
             if (!document.getElementById(`boat-${playerId}`)) {
