@@ -1,3 +1,4 @@
+const express = require('express'); // 🔥 Adicionando importação do Express
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
@@ -5,7 +6,12 @@ const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 // 🔥 Servir arquivos da pasta "public" (onde estará o index.html)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -33,7 +39,7 @@ io.on('connection', (socket) => {
     socket.emit('currentPlayers', players);
 
     // Informa os outros jogadores sobre o novo jogador
-    socket.broadcast.emit('newPlayer', players[socket.id]);
+    io.emit('newPlayer', players[socket.id]); // 🔥 Enviar para todos
 
     // Atualiza a posição do jogador quando ele se move
     socket.on('move', (data) => {
