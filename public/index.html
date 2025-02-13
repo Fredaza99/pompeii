@@ -422,7 +422,7 @@
             setTimeout(() => explosion.remove(), 500);
         }
 
-       socket.on("updateHealth", (data) => {
+      socket.on("updateHealth", (data) => {
             console.log(`🩸 Cliente recebeu atualização de vida: ${data.target} agora tem ${data.health}%`);
 
             let healthBar = document.getElementById(`health-${data.target}`);
