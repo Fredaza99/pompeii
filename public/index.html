@@ -125,6 +125,7 @@
         let attackRange = 300;
         let damage = 12;
         let selectedTarget = null;
+        let lastSentTime = 0;
         let playerHealth = {};
         let players = {};
 
@@ -232,9 +233,13 @@
 
 
 
-        function fireCannon(targetId) {
-            socket.emit('fire', targetId);
-        }
+        function fireCannonball(targetId) {
+                if (!selectedTarget) return;
+
+                console.log(`🔥 Disparando contra ${targetId}`);
+                socket.emit("fireCannon", { attacker: socket.id, target: targetId });
+            }
+
 
         // Atualiza a barra de vida
         function updateHealthBars() {
@@ -266,7 +271,7 @@
 
         function moveBoat(playerId, startX, startY, endX, endY) {
                 let boat = document.getElementById(`boat-${playerId}`);
-                if (!boat) return; // 🔥 Garante que o barco existe antes de tentar mover
+                if (!boat) return;
 
                 let x = startX;
                 let y = startY;
@@ -284,9 +289,10 @@
                     boat.style.left = `${x}px`;
                     boat.style.top = `${y}px`;
 
-                    // 🔥 Só envia a posição do próprio jogador
-                    if (playerId === socket.id) {
-                        socket.emit('move', { x, y });
+                    let currentTime = Date.now();
+                    if (playerId === socket.id && currentTime - lastSentTime > 100) {
+                        socket.emit("move", { x, y });
+                        lastSentTime = currentTime;
                     }
 
                     requestAnimationFrame(step);
@@ -335,53 +341,55 @@
             }
         });
 
-        // 🔥 Função para atirar
-        function fireCannonball(targetId) {
-            let attackerBoat = document.getElementById(`boat-${socket.id}`);
-            let targetBoat = document.getElementById(`boat-${targetId}`);
+        socket.on("cannonFired", (data) => {
+                console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
+                createCannonball(data.attacker, data.target);
+            });
 
-            if (!attackerBoat || !targetBoat) return; // Se algum barco não existe, sai
+            function createCannonball(attackerId, targetId) {
+                let attackerBoat = document.getElementById(`boat-${attackerId}`);
+                let targetBoat = document.getElementById(`boat-${targetId}`);
 
-            let boatX = attackerBoat.offsetLeft + 40;
-            let boatY = attackerBoat.offsetTop + 40;
-            let targetX = targetBoat.offsetLeft + 40;
-            let targetY = targetBoat.offsetTop + 40;
+                if (!attackerBoat || !targetBoat) return;
 
-            let dx = targetX - boatX;
-            let dy = targetY - boatY;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            let speed = 6;
-            let steps = distance / speed;
-            let stepX = dx / steps;
-            let stepY = dy / steps;
+                let boatX = attackerBoat.offsetLeft + 40;
+                let boatY = attackerBoat.offsetTop + 40;
+                let targetX = targetBoat.offsetLeft + 40;
+                let targetY = targetBoat.offsetTop + 40;
 
-            let x = boatX;
-            let y = boatY;
+                let dx = targetX - boatX;
+                let dy = targetY - boatY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let speed = 6;
+                let steps = distance / speed;
+                let stepX = dx / steps;
+                let stepY = dy / steps;
 
-            // 🔥 Criar bala de canhão
-            let cannonball = document.createElement("div");
-            cannonball.className = "cannonball";
-            gameContainer.appendChild(cannonball);
+                let x = boatX;
+                let y = boatY;
 
-            function moveBall() {
-                x += stepX;
-                y += stepY;
-                cannonball.style.left = `${x}px`;
-                cannonball.style.top = `${y}px`;
+                let cannonball = document.createElement("div");
+                cannonball.className = "cannonball";
+                gameContainer.appendChild(cannonball);
 
-                let currentDistance = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
-                if (currentDistance < 10) {
-                    gameContainer.removeChild(cannonball);
-                    createExplosion(targetX, targetY);
-                    socket.emit("attack", { attacker: socket.id, target: targetId });
-                    return;
+                function moveBall() {
+                    x += stepX;
+                    y += stepY;
+                    cannonball.style.left = `${x}px`;
+                    cannonball.style.top = `${y}px`;
+
+                    let currentDistance = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
+                    if (currentDistance < 10) {
+                        gameContainer.removeChild(cannonball);
+                        createExplosion(targetX, targetY);
+                        return;
+                    }
+
+                    requestAnimationFrame(moveBall);
                 }
 
-                requestAnimationFrame(moveBall);
+                moveBall();
             }
-
-            moveBall();
-        }
 
         // 🔥 Criar explosão ao atingir o alvo
         function createExplosion(x, y) {
