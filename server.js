@@ -31,10 +31,30 @@ io.on("connection", (socket) => {
     socket.on("attack", (data) => {
         let { attacker, target } = data;
 
-        if (players[target]) {
-            playerHealth[target] -= 10; // Cada tiro causa 10 de dano
-            console.log(`🔥 ${attacker} atacou ${target}, vida restante: ${playerHealth[target]}`);
+        if (players[attacker] && players[target]) {
+            let attackerX = players[attacker].x;
+            let attackerY = players[attacker].y;
+            let targetX = players[target].x;
+            let targetY = players[target].y;
 
+            let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
+
+            if (distance > attackRange) {
+                console.log(`🚫 ${attacker} tentou atacar ${target}, mas estava muito longe!`);
+                return;
+            }
+
+            // 🔥 Garante que a vida do jogador atacado existe
+            if (playerHealth[target] === undefined) {
+                console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
+                playerHealth[target] = 100;
+            }
+
+            playerHealth[target] -= 10; // 🔥 Reduz a vida do alvo corretamente
+
+            console.log(`💥 ${attacker} atacou ${target}, vida agora: ${playerHealth[target]}%`);
+
+            // 🔥 Garante que a atualização da vida seja enviada para todos os jogadores
             io.emit("updateHealth", { target, health: playerHealth[target] });
 
             if (playerHealth[target] <= 0) {
