@@ -172,6 +172,12 @@
                 });
             }
 
+            socket.on('currentPlayers', (serverPlayers) => {
+                    players = serverPlayers;
+                    updatePlayers(players);
+                });
+
+
 
        
         function createBoat(playerId, x, y) {
