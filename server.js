@@ -31,9 +31,15 @@ io.on("connection", (socket) => {
     
     
     socket.on("attack", (data) => {
-        let { attacker, target } = data;
+        console.log(`🔥 Servidor recebeu ataque: ${data.attacker} atacando ${data.target}`);
 
-        console.log(`🔥 Servidor recebeu ataque de ${attacker} para ${target}`);
+        // 🔥 Verifica se o atacante tem um ID válido
+        if (!data.attacker || !players[data.attacker]) {
+            console.error(`❌ ERRO: Atacante inválido! ID recebido: ${data.attacker}`);
+            return;
+        }
+
+        let { attacker, target } = data;
 
         if (players[attacker] && players[target]) {
             let attackerX = players[attacker].x;
@@ -48,18 +54,14 @@ io.on("connection", (socket) => {
                 return;
             }
 
-            // 🔥 Garante que a vida do jogador atacado existe
             if (playerHealth[target] === undefined) {
                 console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
                 playerHealth[target] = 100;
             }
 
-            // 🔥 Aplica dano ao jogador atacado
             playerHealth[target] -= 10;
-
             console.log(`💥 ${attacker} atacou ${target}, vida agora: ${playerHealth[target]}%`);
 
-            // 🔥 Envia a atualização para todos os clientes
             io.emit("updateHealth", { target, health: playerHealth[target] });
 
             if (playerHealth[target] <= 0) {
@@ -69,7 +71,7 @@ io.on("connection", (socket) => {
                 delete playerHealth[target];
             }
         } else {
-            console.log(`🚨 ERRO: Jogador ${target} não encontrado no servidor!`);
+            console.log(`🚨 ERRO: Jogador atacado ${target} não encontrado no servidor!`);
         }
     });
 
