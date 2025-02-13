@@ -438,9 +438,10 @@
                         targetBoat.style.background = "";
                     }, 200);
                 }
+            } else {
+                console.warn(`⚠️ Barra de vida do jogador ${data.target} não encontrada!`);
             }
         });
-
         // 🔥 Remove um barco destruído
         socket.on("playerDestroyed", (target) => {
             let boat = document.getElementById(`boat-${target}`);
