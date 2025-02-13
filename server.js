@@ -15,12 +15,39 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 🔥 WebSocket: Gerenciar conexões de jogadores
+// 🔥 Armazena os jogadores conectados
+let players = {};
+
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
+    // Adiciona o jogador à lista com uma posição aleatória
+    players[socket.id] = {
+        x: Math.random() * 800,
+        y: Math.random() * 600,
+        id: socket.id
+    };
+
+    // Envia a lista de jogadores para o novo jogador
+    socket.emit('currentPlayers', players);
+
+    // Informa os outros jogadores sobre o novo jogador
+    socket.broadcast.emit('newPlayer', players[socket.id]);
+
+    // Atualiza a posição do jogador quando ele se move
+    socket.on('move', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
+            io.emit('playerMoved', { id: socket.id, x: data.x, y: data.y });
+        }
+    });
+
+    // Remove o jogador ao desconectar
     socket.on('disconnect', () => {
         console.log(`Jogador desconectado: ${socket.id}`);
+        delete players[socket.id];
+        io.emit('playerDisconnected', socket.id);
     });
 });
 
