@@ -324,27 +324,33 @@
             }
         });
 
-        document.addEventListener("keydown", (event) => {
-                if ((event.code === "KeyA" || event.code === "Space") && selectedTarget) {
-                    let currentTime = Date.now();
+      document.addEventListener("keydown", (event) => {
+            if ((event.code === "KeyA" || event.code === "Space") && selectedTarget) {
+                let currentTime = Date.now();
 
-                    // 🔥 Verifica se o tempo de recarga passou (1 segundo)
-                    if (currentTime - lastAttackTime < 1000) {
-                        console.log("⏳ Recarga em andamento...");
-                        return;
-                    }
-
-                    // 🔥 Verifica se o alvo está dentro da distância máxima
-                    if (!isTargetInRange(selectedTarget)) {
-                        console.log("🚫 O alvo está muito longe para atacar!");
-                        return;
-                    }
-
-                    console.log(`🔥 Atacando ${selectedTarget}`);
-                    fireCannonball(selectedTarget);
-                    lastAttackTime = currentTime; // 🔥 Atualiza o tempo do último ataque
+                if (currentTime - lastAttackTime < 1000) {
+                    console.log("⏳ Recarga em andamento...");
+                    return;
                 }
-            });
+
+                if (!isTargetInRange(selectedTarget)) {
+                    console.log("🚫 O alvo está muito longe para atacar!");
+                    return;
+                }
+
+                // 🔥 Verifica se o próprio jogador tem um ID válido antes de atacar
+                if (!socket.id) {
+                    console.error("❌ ERRO: O ID do jogador atacante está indefinido!");
+                    return;
+                }
+
+                console.log(`🔥 Atacando ${selectedTarget}`);
+                console.log(`🔥 Enviando ataque para o servidor: ${socket.id} atacando ${selectedTarget}`);
+                socket.emit("attack", { attacker: socket.id, target: selectedTarget });
+
+                lastAttackTime = currentTime;
+            }
+        });
 
             // 🔥 Função para verificar se o alvo está dentro do alcance
             function isTargetInRange(targetId) {
