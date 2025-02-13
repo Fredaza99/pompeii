@@ -207,13 +207,14 @@
         });
 
         // 🔥 Quando um jogador se move
-        socket.on('playerMoved', (data) => {
-            if (players[data.id]) {
-                players[data.id].x = data.x;
-                players[data.id].y = data.y;
-                updateBoatPosition(data.id, data.x, data.y);
-            }
-        });
+        socket.on("playerMoved", (data) => {
+                let boat = document.getElementById(`boat-${data.id}`);
+                if (boat) {
+                    boat.style.left = `${data.x}px`;
+                    boat.style.top = `${data.y}px`;
+                }
+            });
+
 
         // 🔥 Quando um jogador sai
         socket.on('playerDisconnected', (playerId) => {
@@ -291,7 +292,7 @@
 
                     let currentTime = Date.now();
                     if (playerId === socket.id && currentTime - lastSentTime > 100) {
-                        socket.emit("move", { x, y });
+                        socket.emit("move", { id: socket.id, x, y });
                         lastSentTime = currentTime;
                     }
 
