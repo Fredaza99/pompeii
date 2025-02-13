@@ -422,26 +422,27 @@
             setTimeout(() => explosion.remove(), 500);
         }
 
-     socket.on("updateHealth", (data) => {
-            console.log(`🩸 Cliente recebeu atualização de vida: ${data.target} agora tem ${data.health}%`);
+   socket.on("updateHealth", (data) => {
+        console.log(`🩸 Cliente recebeu atualização de vida: ${data.target} agora tem ${data.health}%`);
 
-            let healthBar = document.getElementById(`health-${data.target}`);
-            if (healthBar) {
-                healthBar.style.width = `${data.health}%`;
+        let healthBar = document.getElementById(`health-${data.target}`);
+        if (healthBar) {
+            healthBar.style.width = `${data.health}%`;
 
-                // 🔥 Efeito visual de dano (flash vermelho)
-                let targetBoat = document.getElementById(`boat-${data.target}`);
-                if (targetBoat) {
-                    targetBoat.style.transition = "background 0.2s";
-                    targetBoat.style.background = "red";
-                    setTimeout(() => {
-                        targetBoat.style.background = "";
-                    }, 200);
-                }
-            } else {
-                console.warn(`⚠️ Barra de vida do jogador ${data.target} não encontrada!`);
+            // 🔥 Efeito visual de dano (flash vermelho)
+            let targetBoat = document.getElementById(`boat-${data.target}`);
+            if (targetBoat) {
+                targetBoat.style.transition = "background 0.2s";
+                targetBoat.style.background = "red";
+                setTimeout(() => {
+                    targetBoat.style.background = "";
+                }, 200);
             }
-        });
+        } else {
+            console.warn(`⚠️ Barra de vida do jogador ${data.target} não encontrada!`);
+        }
+    });
+
 
 
         // 🔥 Remove um barco destruído
