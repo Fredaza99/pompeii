@@ -7,12 +7,12 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// 🔥 Permitir CORS
+// 🔥 Permitir CORS para evitar bloqueios
 app.use(cors());
 
 const io = socketIo(server, {
     cors: {
-        origin: "*",  // Permite todas as origens (mudar para um domínio específico depois)
+        origin: "*",  // Permitir qualquer origem
         methods: ["GET", "POST"]
     }
 });
@@ -26,7 +26,7 @@ let players = {};
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    // Adiciona jogador à lista
+    // Adiciona o jogador à lista
     players[socket.id] = {
         x: Math.random() * 800,
         y: Math.random() * 600,
@@ -56,7 +56,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// 🔥 Rodar servidor na porta 3000
-server.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
+// 🔥 Definir a porta do Railway
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
