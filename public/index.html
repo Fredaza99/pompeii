@@ -422,11 +422,22 @@
             setTimeout(() => explosion.remove(), 500);
         }
 
-        // 🔥 Atualiza a vida do jogador atacado
-        socket.on("updateHealth", (data) => {
+       socket.on("updateHealth", (data) => {
+            console.log(`🩸 Vida atualizada para ${data.target}: ${data.health}%`); // 🔥 Verificar no console
+
             let healthBar = document.getElementById(`health-${data.target}`);
             if (healthBar) {
                 healthBar.style.width = `${data.health}%`;
+
+                // 🔥 Efeito visual de dano (breve flash vermelho)
+                let targetBoat = document.getElementById(`boat-${data.target}`);
+                if (targetBoat) {
+                    targetBoat.style.transition = "background 0.2s";
+                    targetBoat.style.background = "red";
+                    setTimeout(() => {
+                        targetBoat.style.background = "";
+                    }, 200);
+                }
             }
         });
 
