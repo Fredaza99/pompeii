@@ -61,16 +61,15 @@ io.on("connection", (socket) => {
 
             let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
 
-            // 🔥 Verifica se o alvo está dentro do alcance
             if (distance > attackRange) {
                 console.log(`🚫 ${attacker} tentou atacar ${target}, mas estava muito longe!`);
                 return;
             }
 
-            playerHealth[target] -= 10; // Cada tiro causa 10 de dano
-            console.log(`🔥 ${attacker} atacou ${target}, vida restante: ${playerHealth[target]}`);
+            playerHealth[target] -= 10; // 🔥 Reduz a vida do alvo
+            console.log(`🔥 ${attacker} atacou ${target}, nova vida: ${playerHealth[target]}`);
 
-            io.emit("updateHealth", { target, health: playerHealth[target] });
+            io.emit("updateHealth", { target, health: playerHealth[target] }); // 🔥 Envia a atualização para todos os clientes
 
             if (playerHealth[target] <= 0) {
                 console.log(`💀 ${target} foi destruído!`);
@@ -80,6 +79,7 @@ io.on("connection", (socket) => {
             }
         }
     });
+
 
     socket.on("disconnect", () => {
         console.log(`Jogador desconectado: ${socket.id}`);
