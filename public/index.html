@@ -243,46 +243,59 @@
             targetHealthBar.style.width = `${(targetHP / 50) * 100}%`;
         }
 
-        document.addEventListener("click", (event) => {
+       document.addEventListener("click", (event) => {
+            if (!players[socket.id]) return; // 🔥 Se o jogador não estiver no servidor, não faz nada
+
             let targetX = event.clientX;
             let targetY = event.clientY;
+
+            let boat = document.getElementById(`boat-${socket.id}`); // 🔥 Pegando o barco correto
+            if (!boat) return; // 🔥 Se o barco ainda não existir, sai
 
             let boatX = boat.offsetLeft;
             let boatY = boat.offsetTop;
 
             let dx = targetX - boatX;
             let dy = targetY - boatY;
-            let angle = Math.atan2(dy, dx) * (180 / Math.PI) - 90; // Corrige a rotação
+            let angle = Math.atan2(dy, dx) * (180 / Math.PI) - 90; // 🔥 Corrige a rotação do barco
 
             boat.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-            moveBoat(boatX, boatY, targetX, targetY);
+
+            moveBoat(socket.id, boatX, boatY, targetX, targetY);
         });
 
-        function moveBoat(startX, startY, endX, endY) {
-            let x = startX;
-            let y = startY;
 
-            function step() {
-                let dx = endX - x;
-                let dy = endY - y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
+        function moveBoat(playerId, startX, startY, endX, endY) {
+                let boat = document.getElementById(`boat-${playerId}`);
+                if (!boat) return; // 🔥 Garante que o barco existe antes de tentar mover
 
-                if (distance < 2) return;
+                let x = startX;
+                let y = startY;
 
-                x += dx / distance * speed;
-                y += dy / distance * speed;
+                function step() {
+                    let dx = endX - x;
+                    let dy = endY - y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
 
-                boat.style.left = `${x}px`;
-                boat.style.top = `${y}px`;
+                    if (distance < 2) return;
 
-                // 🔥 Enviar posição para o servidor
-                socket.emit('move', { x, y });
+                    x += dx / distance * speed;
+                    y += dy / distance * speed;
 
-                requestAnimationFrame(step);
+                    boat.style.left = `${x}px`;
+                    boat.style.top = `${y}px`;
+
+                    // 🔥 Só envia a posição do próprio jogador
+                    if (playerId === socket.id) {
+                        socket.emit('move', { x, y });
+                    }
+
+                    requestAnimationFrame(step);
+                }
+
+                step();
             }
 
-            step();
-        }
 
         function positionTarget() {
             let x = Math.random() * (window.innerWidth - 50);
