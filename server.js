@@ -24,37 +24,42 @@ app.get('/', (req, res) => {
 
 // 🔥 Armazena os jogadores conectados
 let players = {};
+let playerHealth = {}; // Armazena a vida dos jogadores
 
-io.on('connection', (socket) => {
+
+io.on("connection", (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    // Adiciona o jogador à lista com uma posição aleatória
-    players[socket.id] = {
-        x: Math.random() * 800,
-        y: Math.random() * 600,
-        id: socket.id
-    };
+    players[socket.id] = { x: Math.random() * 800, y: Math.random() * 600, id: socket.id };
+    playerHealth[socket.id] = 100; // Cada jogador começa com 100 de vida
 
-    // Envia a lista de jogadores para o novo jogador
-    socket.emit('currentPlayers', players);
+    socket.emit("currentPlayers", players);
+    io.emit("newPlayer", players[socket.id]);
 
-    // Informa os outros jogadores sobre o novo jogador
-    io.emit('newPlayer', players[socket.id]); // 🔥 Enviar para todos
+    // 🔥 Processa o ataque recebido
+    socket.on("attack", (data) => {
+        let { attacker, target } = data;
 
-    // Atualiza a posição do jogador quando ele se move
-    socket.on('move', (data) => {
-        if (players[socket.id]) {
-            players[socket.id].x = data.x;
-            players[socket.id].y = data.y;
-            io.emit('playerMoved', { id: socket.id, x: data.x, y: data.y });
+        if (players[target]) {
+            playerHealth[target] -= 10; // Cada tiro causa 10 de dano
+            console.log(`🔥 ${attacker} atacou ${target}, vida restante: ${playerHealth[target]}`);
+
+            io.emit("updateHealth", { target, health: playerHealth[target] });
+
+            if (playerHealth[target] <= 0) {
+                console.log(`💀 ${target} foi destruído!`);
+                io.emit("playerDestroyed", target);
+                delete players[target];
+                delete playerHealth[target];
+            }
         }
     });
 
-    // Remove o jogador ao desconectar
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
         console.log(`Jogador desconectado: ${socket.id}`);
         delete players[socket.id];
-        io.emit('playerDisconnected', socket.id);
+        delete playerHealth[socket.id];
+        io.emit("playerDisconnected", socket.id);
     });
 });
 
