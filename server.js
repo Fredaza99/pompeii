@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const cors = require('cors');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -9,6 +11,8 @@ const io = socketIo(server);
 
 // 🔥 Servir arquivos da pasta "public" (onde estará o index.html)
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+
 
 // 🔥 Rota principal para carregar o jogo
 app.get('/', (req, res) => {
