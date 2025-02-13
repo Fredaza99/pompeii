@@ -137,6 +137,18 @@
         let hp = 100;
         let attackRange = 300;
         let damage = 12;
+    
+    
+        function updatePlayers(players) {
+        Object.keys(players).forEach((id) => {
+            if (!document.getElementById(`boat-${id}`)) {
+                createBoat(id, players[id].x, players[id].y);
+            } else {
+                updateBoatPosition(id, players[id].x, players[id].y);
+            }
+        });
+    }
+
         socket.on('connect', () => {
             console.log("Conectado ao servidor WebSocket!");
         });
@@ -146,15 +158,7 @@
         let players = {};
         // Atualiza a lista de jogadores ao entrar
 
-    function updatePlayers(players) {
-        Object.keys(players).forEach((id) => {
-            if (!document.getElementById(`boat-${id}`)) {
-                createBoat(id, players[id].x, players[id].y);
-            } else {
-                updateBoatPosition(id, players[id].x, players[id].y);
-            }
-        });
-    }
+    
 
         socket.on('currentPlayers', (serverPlayers) => {
             players = serverPlayers;
