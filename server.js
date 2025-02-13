@@ -1,45 +1,41 @@
-const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
+const io = socketIo(server);
 
-// 🔥 Permitir CORS para evitar bloqueios
+// 🔥 Servir arquivos da pasta "public" (onde estará o index.html)
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-const io = socketIo(server, {
-    cors: {
-        origin: "*",  // Permitir qualquer origem
-        methods: ["GET", "POST"]
-    }
+// 🔥 Rota principal para carregar o jogo
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 🔥 Servir arquivos da pasta "public"
-app.use(express.static(path.join(__dirname, 'public')));
-
-// 🔥 Armazena jogadores conectados
+// 🔥 Armazena os jogadores conectados
 let players = {};
 
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    // Adiciona o jogador à lista
+    // Adiciona o jogador à lista com uma posição aleatória
     players[socket.id] = {
         x: Math.random() * 800,
         y: Math.random() * 600,
         id: socket.id
     };
 
-    // Envia a lista de jogadores ao novo jogador
+    // Envia a lista de jogadores para o novo jogador
     socket.emit('currentPlayers', players);
 
     // Informa os outros jogadores sobre o novo jogador
     socket.broadcast.emit('newPlayer', players[socket.id]);
 
-    // Atualiza posição do jogador
+    // Atualiza a posição do jogador quando ele se move
     socket.on('move', (data) => {
         if (players[socket.id]) {
             players[socket.id].x = data.x;
@@ -48,7 +44,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Remove jogador ao desconectar
+    // Remove o jogador ao desconectar
     socket.on('disconnect', () => {
         console.log(`Jogador desconectado: ${socket.id}`);
         delete players[socket.id];
@@ -56,8 +52,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// 🔥 Definir a porta do Railway
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+server.listen(3000, () => {
+    console.log('Servidor rodando na porta 3000');
 });
