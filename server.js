@@ -38,8 +38,17 @@ io.on("connection", (socket) => {
 
     socket.on("fireCannon", (data) => {
         console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
-        io.emit("cannonFired", data); // 🔥 Envia para TODOS os jogadores
+        io.emit("cannonFired", data); 
     });
+
+    socket.on("move", (data) => {
+        if (players[data.id]) {
+            players[data.id].x = data.x;
+            players[data.id].y = data.y;
+            io.emit("playerMoved", { id: data.id, x: data.x, y: data.y });
+        }
+    });
+
 
     // 🔥 Processa o ataque recebido
     socket.on("attack", (data) => {
