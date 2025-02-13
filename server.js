@@ -1,4 +1,4 @@
-const express = require('express'); // 🔥 Adicionando importação do Express
+const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
@@ -13,32 +13,25 @@ const io = socketIo(server, {
     }
 });
 
-// 🔥 Servir arquivos da pasta "public" (onde estará o index.html)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-// 🔥 Rota principal para carregar o jogo
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// 🔥 Armazena os jogadores conectados
 let players = {};
-let playerHealth = {}; // Armazena a vida dos jogadores
-const attackRange = 300;
+let playerHealth = {};
+const attackRange = 300; // 🔥 Definição correta do alcance
 
 io.on("connection", (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
     players[socket.id] = { x: Math.random() * 800, y: Math.random() * 600, id: socket.id };
-    playerHealth[socket.id] = 100; // Cada jogador começa com 100 de vida
+    playerHealth[socket.id] = 100; // 🔥 Cada jogador começa com 100 de vida
 
     socket.emit("currentPlayers", players);
     io.emit("newPlayer", players[socket.id]);
 
     socket.on("fireCannon", (data) => {
         console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
-        io.emit("cannonFired", data); 
+        io.emit("cannonFired", data);
     });
 
     socket.on("move", (data) => {
@@ -49,7 +42,7 @@ io.on("connection", (socket) => {
         }
     });
 
-
+    // 🔥 Correção: O servidor reduz corretamente a vida do alvo
     socket.on("attack", (data) => {
         let { attacker, target } = data;
 
@@ -66,13 +59,12 @@ io.on("connection", (socket) => {
                 return;
             }
 
-            // 🔥 Verifica se a vida do alvo existe, senão inicializa
-            if (!playerHealth[target]) {
+            if (playerHealth[target] === undefined) {
                 console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
                 playerHealth[target] = 100;
             }
 
-            playerHealth[target] -= 10; // 🔥 Reduz a vida do alvo
+            playerHealth[target] -= 10; // 🔥 Reduz a vida do alvo corretamente
             console.log(`💥 ${attacker} causou dano em ${target}, vida agora: ${playerHealth[target]}%`);
 
             io.emit("updateHealth", { target, health: playerHealth[target] });
@@ -85,8 +77,6 @@ io.on("connection", (socket) => {
             }
         }
     });
-
-
 
     socket.on("disconnect", () => {
         console.log(`Jogador desconectado: ${socket.id}`);
