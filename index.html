@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coliseum Ship Fight</title>
+    <style>
+    body {
+    margin: 0;
+    overflow: hidden;
+    background: url('images/seaback.png') no-repeat center center fixed; /* Define a imagem como fundo */
+    background-size: cover; /* Faz com que a imagem cubra toda a tela */
+    cursor: pointer;
+
+}
+        
+    #game-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        }
+
+    #boat {
+    width: 80px;
+    height: 80px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-image: url('images/e63b78995b51eee960753a5a53e2484653c70752.png');
+    background-size: cover;
+    transform-origin: center; 
+}
+
+         /* Barras de Vida */
+    .health-bar-container {
+    position: absolute;
+    width: 100px;
+    height: 3px;
+    background: rgba(255, 0, 0, 0.5);
+    border: 1px solid black;
+    border-radius: 5px;
+    top: 95px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    padding: 2px;
+}
+
+    .health-bar {
+        height: 3px;
+        width: 100px;
+        background: limegreen;
+        border-radius: 5px;
+        }
+
+       .health-icon {
+    width: 25px; 
+    height: 25px;
+    margin-right: 10px; 
+    background-image: url('images/rei.gif'); 
+    background-size: contain;
+    background-repeat: no-repeat;
+}         
+
+        #target {
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            background-image: url('images/npc.png'); 
+            background-size: cover;
+            transition: transform 0.2s ease-in-out;
+        }
+    
+         .cannonball {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            background: radial-gradient(circle, #c9f6028b, #d9fa1edd, #c3e431);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(236, 207, 90, 0.9), 0 0 30px rgba(255, 102, 0, 0.7);
+            animation: glow 0.5s infinite alternate;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 10px rgba(255, 255, 0, 0.8), 0 0 25px rgba(255, 77, 0, 0.5); }
+            100% { box-shadow: 0 0 15px rgba(255, 255, 255, 1), 0 0 35px rgba(220, 38, 38, 0.7); }
+        }
+
+        .explosion {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(223, 4, 4, 0.997) 0%, rgb(200, 111, 15) 50%, rgba(255, 3, 3, 0) 80%);
+            border-radius: 50%;
+            animation: explode 0.5s ease-out;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="boat">
+
+            <div class="health-bar-container">
+                <div class="health-icon"></div>
+                <div class="health-bar" id="boat-health"></div>
+            </div>
+            
+        </div>
+        <div id="target">
+            <div class="health-bar-container">
+                <div class="health-bar" id="target-health"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+
+
+    <script>
+       const boat = document.getElementById("boat");
+        const target = document.getElementById("target");
+        const boatHealthBar = document.getElementById("boat-health");
+        const targetHealthBar = document.getElementById("target-health");
+
+        let boatHP = 100;
+        let speed = 2.3;
+        let targetHP = 100;
+        let attackRange = 300;
+        let damage = 12;
+
+            const socket = io('https://pompeii.up.railway.app/'); // Conectar ao servidor WebSocket
+
+                socket.on('connect', () => {
+                    console.log("Conectado ao servidor WebSocket!");
+                });
+
+                socket.on('disconnect', () => {
+                    console.log("Desconectado do servidor!");
+                });
+
+            let players = {};
+
+            // Atualiza a lista de jogadores ao entrar
+            socket.on('currentPlayers', (serverPlayers) => {
+                players = serverPlayers;
+                console.log('Jogadores conectados:', players);
+            });
+
+            // Adiciona um novo jogador
+            socket.on('newPlayer', (player) => {
+                players[player.id] = player;
+            });
+
+            // Atualiza a posição de um jogador
+            socket.on('playerMoved', (data) => {
+                if (players[data.id]) {
+                    players[data.id].x = data.x;
+                    players[data.id].y = data.y;
+                    updatePlayers();
+                }
+            });
+
+            // Remove jogador ao desconectar
+            socket.on('playerDisconnected', (playerId) => {
+                delete players[playerId];
+                updatePlayers();
+            });
+
+            // Disparo de canhão
+            socket.on('cannonFired', (data) => {
+                console.log(`O jogador ${data.id} disparou contra ${data.target}`);
+            });
+
+        
+
+            function fireCannon(targetId) {
+                socket.emit('fire', targetId);
+            }
+
+         // Atualiza a barra de vida
+            function updateHealthBars() {
+                boatHealthBar.style.width = `${boatHP}%`;
+                targetHealthBar.style.width = `${(targetHP / 50) * 100}%`;
+            }
+
+        document.addEventListener("click", (event) => {
+                let targetX = event.clientX;
+                let targetY = event.clientY;
+
+                let boatX = boat.offsetLeft;
+                let boatY = boat.offsetTop;
+
+                let dx = targetX - boatX;
+                let dy = targetY - boatY;
+                let angle = Math.atan2(dy, dx) * (180 / Math.PI) - 90; // Corrige a rotação
+
+                boat.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+                moveBoat(boatX, boatY, targetX, targetY);
+            });
+
+        function moveBoat(startX, startY, endX, endY) {
+                let x = startX;
+                let y = startY;
+
+                function step() {
+                    let dx = endX - x;
+                    let dy = endY - y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 2) return;
+
+                    x += dx / distance * speed;
+                    y += dy / distance * speed;
+
+                    boat.style.left = `${x}px`;
+                    boat.style.top = `${y}px`;
+
+                    // 🔥 Enviar posição para o servidor
+                    socket.emit('move', { x, y });
+
+                    requestAnimationFrame(step);
+                }
+
+                step();
+            }
+
+          function positionTarget() {
+                let x = Math.random() * (window.innerWidth - 50);
+                let y = Math.random() * (window.innerHeight - 50);
+
+                target.style.left = `${x}px`;
+                target.style.top = `${y}px`;
+            }
+
+
+            // Evento para "atacar" o alvo
+            target.addEventListener("click", () => {
+                target.style.transform = "scale(1.3)"; // Efeito ao ser atingido
+                setTimeout(() => {
+                    target.style.transform = "scale(1)";
+                    positionTarget(); // Reposiciona o alvo
+                }, 200);
+            });
+
+            // Inicializa o alvo em uma posição aleatória
+            positionTarget();
+
+            
+                function isInAttackRange() {
+                    let boatX = boat.offsetLeft;
+                    let boatY = boat.offsetTop;
+                    let targetX = target.offsetLeft;
+                    let targetY = target.offsetTop;
+
+                    let distance = Math.sqrt((targetX - boatX) ** 2 + (targetY - boatY) ** 2);
+                    return distance <= attackRange;
+                }
+
+                   // Função para disparar múltiplas balas de canhão
+                    function fireCannonball() {
+                            if (!isInAttackRange()) {
+                                return;
+                            }
+
+                            let numShots = 3 + Math.floor(Math.random() * 5);
+                            for (let i = 0; i < numShots; i++) {
+                                setTimeout(() => shootSingleBall(i), i * 100);
+                            }
+
+                            // 🔥 Avisar o servidor que o jogador disparou
+                            socket.emit('fire', { id: socket.id, target: "enemy" });
+                        }
+
+                    function shootSingleBall(offset) {
+                        let cannonball = document.createElement("div");
+                        cannonball.className = "cannonball";
+                        document.getElementById("game-container").appendChild(cannonball);
+
+                        let boatX = boat.offsetLeft + 40;
+                        let boatY = boat.offsetTop + 40;
+                        let targetX = target.offsetLeft + 25 + (Math.random() * 40 - 20);
+                        let targetY = target.offsetTop + 25 + (Math.random() * 40 - 20);
+
+                        let dx = targetX - boatX;
+                        let dy = targetY - boatY;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        let speed = 6;
+                        let steps = distance / speed;
+                        let stepX = dx / steps;
+                        let stepY = dy / steps;
+
+                        let x = boatX;
+                        let y = boatY;
+
+                        function moveBall() {
+                            x += stepX;
+                            y += stepY;
+                            cannonball.style.left = `${x}px`;
+                            cannonball.style.top = `${y}px`;
+
+                            let currentDistance = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
+                            if (currentDistance < 10) {
+                                document.getElementById("game-container").removeChild(cannonball);
+                                createExplosion(targetX, targetY);
+                                hitTarget();
+                                return;
+                            }
+
+                            requestAnimationFrame(moveBall);
+                        }
+
+                        moveBall();
+                    }
+
+                    function createExplosion(x, y) {
+                        let explosion = document.createElement("div");
+                        explosion.className = "explosion";
+                        explosion.style.left = `${x}px`;
+                        explosion.style.top = `${y}px`;
+                        document.getElementById("game-container").appendChild(explosion);
+                        setTimeout(() => explosion.remove(), 500);
+                    }
+
+                          function hitTarget() {
+                                targetHP -= damage;
+                                updateHealthBars();
+
+                                if (targetHP <= 0) {
+                                    positionTarget();
+                                    targetHP = 100;
+                                }
+
+                                // Alvo ataca de volta
+                                setTimeout(() => enemyAttack(), 1000);
+                            }
+
+                               function enemyAttack() {
+                                    if (Math.random() > 0.5) {
+                                        boatHP -= 10;
+                                        updateHealthBars();
+
+                                        if (boatHP <= 0) {
+                                            alert("Seu barco foi destruído!");
+                                            boatHP = 100;
+                                            updateHealthBars();
+                                        }
+                                    }
+                                }
+
+                    document.addEventListener("keydown", (event) => {
+                        if (event.code === "Space") {
+                            fireCannonball();
+                        }
+                    });
+
+                    positionTarget();
+                        updateHealthBars();
+    </script>
+</body>
+</html>
