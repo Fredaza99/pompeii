@@ -161,13 +161,8 @@
                 updatePlayers();
             }
         });
-        // Remove jogador ao desconectar
-        socket.on('playerDisconnected', (playerId) => {
-            delete players[playerId];
-            updatePlayers();
-        });
 
-        function updatePlayers(players) {
+         function updatePlayers(players) {
                 Object.keys(players).forEach((id) => {
                     if (!document.getElementById(`boat-${id}`)) {
                         createBoat(id, players[id].x, players[id].y);
@@ -176,6 +171,7 @@
                     }
                 });
             }
+
 
        
         function createBoat(playerId, x, y) {
