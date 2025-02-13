@@ -145,14 +145,26 @@
         });
         let players = {};
         // Atualiza a lista de jogadores ao entrar
+
+    function updatePlayers(players) {
+        Object.keys(players).forEach((id) => {
+            if (!document.getElementById(`boat-${id}`)) {
+                createBoat(id, players[id].x, players[id].y);
+            } else {
+                updateBoatPosition(id, players[id].x, players[id].y);
+            }
+        });
+    }
+
         socket.on('currentPlayers', (serverPlayers) => {
             players = serverPlayers;
             console.log('Jogadores conectados:', players);
         });
         // Adiciona um novo jogador
         socket.on('newPlayer', (player) => {
-            players[player.id] = player;
-        });
+                players[player.id] = player;
+                updatePlayers(players);
+            });
         // Atualiza a posição de um jogador
         socket.on('playerMoved', (data) => {
             if (players[data.id]) {
@@ -162,15 +174,6 @@
             }
         });
 
-         function updatePlayers(players) {
-                Object.keys(players).forEach((id) => {
-                    if (!document.getElementById(`boat-${id}`)) {
-                        createBoat(id, players[id].x, players[id].y);
-                    } else {
-                        updateBoatPosition(id, players[id].x, players[id].y);
-                    }
-                });
-            }
 
             socket.on('currentPlayers', (serverPlayers) => {
                     players = serverPlayers;
