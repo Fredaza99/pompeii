@@ -107,12 +107,7 @@
 <body>
     <div id="game-container">
             
-        <div id="target">
-            <div class="health-bar-container">
-                <div class="health-bar" id="target-health"></div>
-            </div>
-        </div>
-    </div>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 
@@ -129,6 +124,8 @@
         let hp = 100;
         let attackRange = 300;
         let damage = 12;
+        let selectedTarget = null;
+        let playerHealth = {};
         let players = {};
 
         // 🔥 Função para atualizar jogadores na tela
@@ -226,6 +223,8 @@
             delete players[playerId];
         });
 
+        
+
         // Disparo de canhão
         socket.on('cannonFired', (data) => {
             console.log(`O jogador ${data.id} disparou contra ${data.target}`);
@@ -296,27 +295,17 @@
                 step();
             }
 
+            document.addEventListener("click", (event) => {
+                    let clickedBoat = event.target.closest(".boat"); // Verifica se clicou em um barco
+                    if (clickedBoat && clickedBoat.id !== `boat-${socket.id}`) {
+                        selectedTarget = clickedBoat.id.replace("boat-", ""); // Pega o ID do jogador alvo
+                        console.log(`Alvo selecionado: ${selectedTarget}`);
+                    }
+                });
 
-        function positionTarget() {
-            let x = Math.random() * (window.innerWidth - 50);
-            let y = Math.random() * (window.innerHeight - 50);
-
-            target.style.left = `${x}px`;
-            target.style.top = `${y}px`;
-        }
 
 
-        // Evento para "atacar" o alvo
-        target.addEventListener("click", () => {
-            target.style.transform = "scale(1.3)"; // Efeito ao ser atingido
-            setTimeout(() => {
-                target.style.transform = "scale(1)";
-                positionTarget(); // Reposiciona o alvo
-            }, 200);
-        });
 
-        // Inicializa o alvo em uma posição aleatória
-        positionTarget();
 
 
         function isInAttackRange() {
@@ -329,30 +318,34 @@
             return distance <= attackRange;
         }
 
-        // Função para disparar múltiplas balas de canhão
-        function fireCannonball() {
-            if (!isInAttackRange()) {
-                return;
+       // 🔥 Clique em um barco para selecionar como alvo
+        document.addEventListener("click", (event) => {
+            let clickedBoat = event.target.closest(".boat"); // Verifica se clicou em um barco
+            if (clickedBoat && clickedBoat.id !== `boat-${socket.id}`) {
+                selectedTarget = clickedBoat.id.replace("boat-", ""); // Pega o ID do jogador alvo
+                console.log(`🎯 Alvo selecionado: ${selectedTarget}`);
             }
+        });
 
-            let numShots = 3 + Math.floor(Math.random() * 5);
-            for (let i = 0; i < numShots; i++) {
-                setTimeout(() => shootSingleBall(i), i * 100);
+        // 🔥 Detecta a tecla "A" ou "Espaço" para atacar
+        document.addEventListener("keydown", (event) => {
+            if ((event.code === "KeyA" || event.code === "Space") && selectedTarget) {
+                console.log(`🔥 Atacando ${selectedTarget}`);
+                fireCannonball(selectedTarget);
             }
+        });
 
-            // 🔥 Avisar o servidor que o jogador disparou
-            socket.emit('fire', { id: socket.id, target: "enemy" });
-        }
+        // 🔥 Função para atirar
+        function fireCannonball(targetId) {
+            let attackerBoat = document.getElementById(`boat-${socket.id}`);
+            let targetBoat = document.getElementById(`boat-${targetId}`);
 
-        function shootSingleBall(offset) {
-            let cannonball = document.createElement("div");
-            cannonball.className = "cannonball";
-            document.getElementById("game-container").appendChild(cannonball);
+            if (!attackerBoat || !targetBoat) return; // Se algum barco não existe, sai
 
-            let boatX = boat.offsetLeft + 40;
-            let boatY = boat.offsetTop + 40;
-            let targetX = target.offsetLeft + 25 + (Math.random() * 40 - 20);
-            let targetY = target.offsetTop + 25 + (Math.random() * 40 - 20);
+            let boatX = attackerBoat.offsetLeft + 40;
+            let boatY = attackerBoat.offsetTop + 40;
+            let targetX = targetBoat.offsetLeft + 40;
+            let targetY = targetBoat.offsetTop + 40;
 
             let dx = targetX - boatX;
             let dy = targetY - boatY;
@@ -365,6 +358,11 @@
             let x = boatX;
             let y = boatY;
 
+            // 🔥 Criar bala de canhão
+            let cannonball = document.createElement("div");
+            cannonball.className = "cannonball";
+            gameContainer.appendChild(cannonball);
+
             function moveBall() {
                 x += stepX;
                 y += stepY;
@@ -373,9 +371,9 @@
 
                 let currentDistance = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
                 if (currentDistance < 10) {
-                    document.getElementById("game-container").removeChild(cannonball);
+                    gameContainer.removeChild(cannonball);
                     createExplosion(targetX, targetY);
-                    hitTarget();
+                    socket.emit("attack", { attacker: socket.id, target: targetId });
                     return;
                 }
 
@@ -385,49 +383,32 @@
             moveBall();
         }
 
+        // 🔥 Criar explosão ao atingir o alvo
         function createExplosion(x, y) {
             let explosion = document.createElement("div");
             explosion.className = "explosion";
             explosion.style.left = `${x}px`;
             explosion.style.top = `${y}px`;
-            document.getElementById("game-container").appendChild(explosion);
+            gameContainer.appendChild(explosion);
             setTimeout(() => explosion.remove(), 500);
         }
 
-        function hitTarget() {
-            targetHP -= damage;
-            updateHealthBars();
-
-            if (targetHP <= 0) {
-                positionTarget();
-                targetHP = 100;
-            }
-
-            // Alvo ataca de volta
-            setTimeout(() => enemyAttack(), 1000);
-        }
-
-        function enemyAttack() {
-            if (Math.random() > 0.5) {
-                boatHP -= 10;
-                updateHealthBars();
-
-                if (boatHP <= 0) {
-                    alert("Seu barco foi destruído!");
-                    boatHP = 100;
-                    updateHealthBars();
-                }
-            }
-        }
-
-        document.addEventListener("keydown", (event) => {
-            if (event.code === "Space") {
-                fireCannonball();
+        // 🔥 Atualiza a vida do jogador atacado
+        socket.on("updateHealth", (data) => {
+            let healthBar = document.getElementById(`health-${data.target}`);
+            if (healthBar) {
+                healthBar.style.width = `${data.health}%`;
             }
         });
 
-        positionTarget();
-        updateHealthBars();
+        // 🔥 Remove um barco destruído
+        socket.on("playerDestroyed", (target) => {
+            let boat = document.getElementById(`boat-${target}`);
+            if (boat) {
+                boat.remove();
+            }
+            delete players[target];
+        });
     </script>
     </body>
 </html>
