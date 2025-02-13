@@ -166,13 +166,21 @@
                 updatePlayers(players);
             });
         // Atualiza a posição de um jogador
-        socket.on('playerMoved', (data) => {
+       socket.on('playerMoved', (data) => {
             if (players[data.id]) {
                 players[data.id].x = data.x;
                 players[data.id].y = data.y;
-                updatePlayers();
+                updateBoatPosition(data.id, data.x, data.y);
             }
         });
+
+        socket.on('playerDisconnected', (playerId) => {
+                let boat = document.getElementById(`boat-${playerId}`);
+                if (boat) {
+                    boat.remove();
+                }
+                delete players[playerId];
+            });
 
 
             socket.on('currentPlayers', (serverPlayers) => {
