@@ -120,7 +120,8 @@
         const socket = io('https://pompeii.up.railway.app/'); // Conectar ao servidor WebSocket
         const gameContainer = document.getElementById("game-container");
 
-    let pingHistory = [];
+        let pingHistory = [];
+        let lastPingTime = 0;
         let speed = 3;
         let hp = 100;
         let attackRange = 300;
@@ -245,27 +246,28 @@
             delete players[playerId];
         });
 
-        function measurePing() {
-                let startTime = Date.now();
-                socket.emit("pingTest");
+       function measurePing() {
+            lastPingTime = Date.now();
+            socket.emit("pingTest");
+        }
 
-                socket.on("pongTest", () => {
-                    let currentPing = Date.now() - startTime;
+        // 🔥 Garante que o servidor responde imediatamente o ping
+        socket.on("pongTest", () => {
+            let currentPing = Date.now() - lastPingTime;
 
-                    if (currentPing < 10000) { // 🔥 Ignora valores absurdos
-                        pingHistory.push(currentPing);
-                        if (pingHistory.length > 5) pingHistory.shift();
-                    }
-
-                    let avgPing = pingHistory.reduce((a, b) => a + b, 0) / pingHistory.length;
-                    ping = avgPing;
-
-                    console.log(`📡 Ping médio: ${ping.toFixed(2)}ms`);
-                });
-
-                setTimeout(measurePing, 2000); // Atualiza o ping a cada 2s
+            if (currentPing < 10000) { // 🔥 Ignora pings absurdamente altos
+                pingHistory.push(currentPing);
+                if (pingHistory.length > 5) pingHistory.shift();
             }
-            measurePing();
+
+            let avgPing = pingHistory.reduce((a, b) => a + b, 0) / pingHistory.length;
+            ping = avgPing;
+
+            console.log(`📡 Ping médio: ${ping.toFixed(2)}ms`);
+        });
+
+        // 🔥 Envia ping a cada 2 segundos
+        setInterval(measurePing, 1000);
         
 
         // Disparo de canhão
