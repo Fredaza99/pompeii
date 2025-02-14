@@ -78,6 +78,7 @@ io.on("connection", (socket) => {
     });
 
 
+
     socket.on("fireCannon", (data) => {
         console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
         io.emit("cannonFired", data);
