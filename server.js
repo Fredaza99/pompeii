@@ -85,12 +85,15 @@ io.on("connection", (socket) => {
     });
 
     socket.on("move", (data) => {
-        if (players[data.id]) {
-            players[data.id].x = data.x;
-            players[data.id].y = data.y;
-            io.emit("playerMoved", { id: data.id, x: data.x, y: data.y });
-        }
+        if (!players[data.id]) return;
+
+        // 🔥 Garante que o servidor só armazene a última posição válida
+        players[data.id].x = data.x;
+        players[data.id].y = data.y;
+
+        io.emit("playerMoved", { id: data.id, x: data.x, y: data.y });
     });
+
 
 
     socket.on("disconnect", () => {
