@@ -10,7 +10,6 @@
     overflow: hidden;
     background: url('images/seaback.png') no-repeat center center fixed; /* Define a imagem como fundo */
     background-size: cover; /* Faz com que a imagem cubra toda a tela */
-    cursor: pointer;
 
 }
         
@@ -29,7 +28,8 @@
     transform: translate(-50%, -50%);
     background-image: url('images/e63b78995b51eee960753a5a53e2484653c70752.png');
     background-size: cover;
-    transform-origin: center; 
+    transform-origin: center;
+    cursor: pointer;
 }
 
          /* Barras de Vida */
@@ -122,13 +122,16 @@
 
         let pingHistory = [];
         let lastPingTime = 0;
-        let speed = 3;
+        let speed = 2.5;
         let hp = 100;
         let attackRange = 300;
         let damage = 12;
         let selectedTarget = null;
         let lastSentTime = 0;
-        let lastAttackTime = 0; 
+        let lastAttackTime = 0;
+        let lastMoveTime = 0;
+        let isMoving = false;
+        let currentTarget = null;
 
         let playerHealth = {};
         let players = {};
@@ -146,18 +149,30 @@
 
         // 🔥 Criar barco para cada jogador com os mesmos atributos do barco original
             function createBoat(playerId, x, y) {
-                if (!document.getElementById(`boat-${playerId}`)) {
-                    let boat = document.createElement("div");
-                    boat.classList.add("boat");
-                    boat.id = `boat-${playerId}`;
-                    boat.style.left = `${x}px`;
-                    boat.style.top = `${y}px`;
-                    boat.style.backgroundImage = "url('images/e63b78995b51eee960753a5a53e2484653c70752.png')";
-                    boat.style.width = "80px";
-                    boat.style.height = "80px";
-                    boat.style.position = "absolute";
-                    boat.style.backgroundSize = "cover";
-                    boat.style.transformOrigin = "center";
+                    if (!document.getElementById(`boat-${playerId}`)) {
+                        let boat = document.createElement("div");
+                        boat.classList.add("boat");
+                        boat.id = `boat-${playerId}`;
+                        boat.style.left = `${x}px`;
+                        boat.style.top = `${y}px`;
+                        boat.style.width = "98px"; // 🔥 Ajuste baseado no tamanho do frame
+                        boat.style.height = "102px";
+                        boat.style.position = "absolute";
+                        boat.style.backgroundImage = "url('images/spritesheet.png')";
+                        boat.style.backgroundSize = "400% 100%"; // 🔥 4 frames na horizontal
+                        boat.style.backgroundPosition = "0 0";
+                        boat.style.cursor = "pointer";
+
+                        // 🔥 Garante que não há rotação aplicada
+                        boat.style.transform = "none";
+
+                        document.body.appendChild(boat);
+
+                        
+
+                    
+                    
+                
 
                     // 🔥 Criar barra de vida dentro do barco
                     let healthBarContainer = document.createElement("div");
@@ -291,9 +306,18 @@
             targetHealthBar.style.width = `${(targetHP / 50) * 100}%`;
         }
 
-       document.addEventListener("click", (event) => {
-            let targetX = event.clientX;
-            let targetY = event.clientY;
+     document.addEventListener("click", (event) => {
+            let currentTime = Date.now();
+            if (currentTime - lastMoveTime < 10) {
+                console.log("⏳ Cooldown ativo! Espere um pouco antes de clicar novamente.");
+                return; // 🔥 Impede spam excessivo
+            }
+
+            lastMoveTime = currentTime;
+
+            let rect = gameContainer.getBoundingClientRect();
+            let targetX = event.clientX - rect.left;
+            let targetY = event.clientY - rect.top;
 
             let boat = document.getElementById(`boat-${socket.id}`);
             if (!boat) return;
@@ -303,56 +327,81 @@
 
             console.log(`⏳ Ordem recebida! Movendo em ${ping.toFixed(0)}ms...`);
 
+            currentTarget = { x: targetX, y: targetY }; // 🔥 Armazena o novo destino
+            isMoving = true; // 🔥 Marca que o barco está em movimento
+
             setTimeout(() => {
                 console.log("🚀 Movimento iniciado!");
                 moveBoat(socket.id, boatX, boatY, targetX, targetY);
-            }, ping); // 🔥 A ação só começa após o tempo do ping!
+            }, ping);
         });
 
-
-
-
         function moveBoat(playerId, startX, startY, endX, endY) {
-            let boat = document.getElementById(`boat-${playerId}`);
-            if (!boat) return;
+                let boat = document.getElementById(`boat-${playerId}`);
+                if (!boat) return;
 
-            let x = startX;
-            let y = startY;
-            let distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+                let x = startX;
+                let y = startY;
+                let distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
 
-            let speed = 4; // 🔥 Velocidade fixa
-            let stepX = ((endX - startX) / distance) * speed;
-            let stepY = ((endY - startY) / distance) * speed;
+                let speed = 2.5;
+                let stepX = ((endX - startX) / distance) * speed;
+                let stepY = ((endY - startY) / distance) * speed;
 
-            function step() {
-                let dx = endX - x;
-                let dy = endY - y;
-                let remainingDistance = Math.sqrt(dx * dx + dy * dy);
+               let angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+            let direction;
 
-                if (remainingDistance < 2) { // 🔥 O barco para quando chega no destino
-                    boat.style.left = `${endX}px`;
-                    boat.style.top = `${endY}px`;
-                    console.log("✅ Barco chegou ao destino!");
-                    return; // 🔥 Para a animação
-                }
-
-                x += stepX;
-                y += stepY;
-
-                boat.style.left = `${x}px`;
-                boat.style.top = `${y}px`;
-
-                let currentTime = Date.now();
-                if (playerId === socket.id && currentTime - lastSentTime > 100) {
-                    socket.emit("move", { id: playerId, x, y });
-                    lastSentTime = currentTime;
-                }
-
-                requestAnimationFrame(step);
+            // 🔥 Ajustando os intervalos dos ângulos para garantir que cada direção seja interpretada corretamente
+            if ((angle >= -22.5 && angle < 22.5)) {
+                direction = 'SE'; // 🔽 Sudeste
+            } else if (angle >= 22.5 && angle < 157.5) {
+                direction = 'NE'; // 🔼 Nordeste
+            } else if (angle >= 157.5 || angle <= -157.5) {
+                direction = 'NO'; // 🔼 Noroeste
+            } else {
+                direction = 'SO'; // 🔽 Sudoeste
             }
 
-            step();
-        }
+
+                // 🔥 Associar direção ao frame correto do spritesheet
+                const frameMap = {
+                    'NO': 0,  // Frame do barco apontando para Noroeste
+                    'NE': 2,  // Frame do barco apontando para Nordeste
+                    'SO': 3,  // Frame do barco apontando para Sudoeste
+                    'SE': 1   // Frame do barco apontando para Sudeste
+                };
+
+                boat.style.backgroundPosition = `-${frameMap[direction] * 98}px 0`;
+
+                function step() {
+                    let dx = endX - x;
+                    let dy = endY - y;
+                    let remainingDistance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (remainingDistance < speed) {
+                        boat.style.left = `${endX}px`;
+                        boat.style.top = `${endY}px`;
+                        console.log("✅ Barco chegou ao destino!");
+                        return;
+                    }
+
+                    x += stepX;
+                    y += stepY;
+
+                    boat.style.left = `${x}px`;
+                    boat.style.top = `${y}px`;
+
+                    let currentTime = Date.now();
+                    if (playerId === socket.id && currentTime - lastMoveTime > 100) {
+                        socket.emit("move", { id: socket.id, x, y });
+                        lastMoveTime = currentTime;
+                    }
+
+                    requestAnimationFrame(step);
+                }
+
+                step();
+            }
 
 
             document.addEventListener("click", (event) => {
@@ -438,7 +487,7 @@
                     let dx = targetX - boatX;
                     let dy = targetY - boatY;
                     let distance = Math.sqrt(dx * dx + dy * dy);
-                    let speed = 6;
+                    let speed = 4;
                     let steps = distance / speed;
                     let stepX = dx / steps;
                     let stepY = dy / steps;
