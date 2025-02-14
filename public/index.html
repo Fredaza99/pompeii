@@ -120,7 +120,7 @@
         const socket = io('https://pompeii.up.railway.app/'); // Conectar ao servidor WebSocket
         const gameContainer = document.getElementById("game-container");
 
-        let ping = 0;
+    let pingHistory = [];
         let speed = 3;
         let hp = 100;
         let attackRange = 300;
@@ -209,7 +209,7 @@
             updatePlayers(players);
         });
 
-       socket.on("playerMoved", (data) => {
+      socket.on("playerMoved", (data) => {
             let boat = document.getElementById(`boat-${data.id}`);
             if (boat) {
                 let currentX = boat.offsetLeft;
@@ -221,31 +221,18 @@
                 let diffX = Math.abs(newX - currentX);
                 let diffY = Math.abs(newY - currentY);
 
-                if (diffX > 50 || diffY > 50) {
-                    // 🔥 Se a diferença for muito grande, teletransporta (previsão estava errada)
+                if (diffX > 100 || diffY > 100) { // 🔥 Se a diferença for grande, ajusta diretamente
                     boat.style.left = `${newX}px`;
                     boat.style.top = `${newY}px`;
                 } else {
                     // 🔥 Caso contrário, suaviza a correção
-                    let stepX = (newX - currentX) / 10;
-                    let stepY = (newY - currentY) / 10;
-
-                    function smoothMove() {
-                        currentX += stepX;
-                        currentY += stepY;
-                        boat.style.left = `${currentX}px`;
-                        boat.style.top = `${currentY}px`;
-
-                        let distance = Math.sqrt((newX - currentX) ** 2 + (newY - currentY) ** 2);
-                        if (distance > 2) {
-                            requestAnimationFrame(smoothMove);
-                        }
-                    }
-
-                    smoothMove();
+                    boat.style.transition = "left 0.1s linear, top 0.1s linear";
+                    boat.style.left = `${newX}px`;
+                    boat.style.top = `${newY}px`;
                 }
             }
         });
+
 
 
 
@@ -263,13 +250,21 @@
                 socket.emit("pingTest");
 
                 socket.on("pongTest", () => {
-                    ping = Date.now() - startTime;
-                    console.log(`📡 Ping atual: ${ping}ms`);
+                    let currentPing = Date.now() - startTime;
+
+                    if (currentPing < 10000) { // 🔥 Ignora valores absurdos
+                        pingHistory.push(currentPing);
+                        if (pingHistory.length > 5) pingHistory.shift();
+                    }
+
+                    let avgPing = pingHistory.reduce((a, b) => a + b, 0) / pingHistory.length;
+                    ping = avgPing;
+
+                    console.log(`📡 Ping médio: ${ping.toFixed(2)}ms`);
                 });
 
-                setTimeout(measurePing, 2000); // Atualiza o ping a cada 2 segundos
+                setTimeout(measurePing, 2000); // Atualiza o ping a cada 2s
             }
-
             measurePing();
         
 
@@ -295,46 +290,59 @@
         }
 
        document.addEventListener("click", (event) => {
-            if (!players[socket.id]) return; // 🔥 Se o jogador não estiver no servidor, não faz nada
-
             let targetX = event.clientX;
             let targetY = event.clientY;
 
-            let boat = document.getElementById(`boat-${socket.id}`); // 🔥 Pegando o barco correto
-            if (!boat) return; // 🔥 Se o barco ainda não existir, sai
+            let boat = document.getElementById(`boat-${socket.id}`);
+            if (!boat) return;
 
             let boatX = boat.offsetLeft;
             let boatY = boat.offsetTop;
 
-            let dx = targetX - boatX;
-            let dy = targetY - boatY;
-            let angle = Math.atan2(dy, dx) * (180 / Math.PI) - 90; // 🔥 Corrige a rotação do barco
+            console.log(`⏳ Ordem recebida! Movendo em ${ping.toFixed(0)}ms...`);
 
-            moveBoat(socket.id, boatX, boatY, targetX, targetY);
+            setTimeout(() => {
+                console.log("🚀 Movimento iniciado!");
+                moveBoat(socket.id, boatX, boatY, targetX, targetY);
+            }, ping); // 🔥 A ação só começa após o tempo do ping!
         });
 
 
-       function moveBoat(playerId, startX, startY, endX, endY) {
+
+
+        function moveBoat(playerId, startX, startY, endX, endY) {
             let boat = document.getElementById(`boat-${playerId}`);
             if (!boat) return;
 
             let x = startX;
             let y = startY;
-            let latencyFactor = Math.max(1, ping / 100); // 🔥 Quanto maior o ping, mais rápido tentamos compensar
+            let distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
 
-            let velocityX = (endX - startX) / (20 / latencyFactor);
-            let velocityY = (endY - startY) / (20 / latencyFactor);
+            let speed = 4; // 🔥 Velocidade fixa
+            let stepX = ((endX - startX) / distance) * speed;
+            let stepY = ((endY - startY) / distance) * speed;
 
             function step() {
-                x += velocityX;
-                y += velocityY;
+                let dx = endX - x;
+                let dy = endY - y;
+                let remainingDistance = Math.sqrt(dx * dx + dy * dy);
+
+                if (remainingDistance < 2) { // 🔥 O barco para quando chega no destino
+                    boat.style.left = `${endX}px`;
+                    boat.style.top = `${endY}px`;
+                    console.log("✅ Barco chegou ao destino!");
+                    return; // 🔥 Para a animação
+                }
+
+                x += stepX;
+                y += stepY;
 
                 boat.style.left = `${x}px`;
                 boat.style.top = `${y}px`;
 
                 let currentTime = Date.now();
                 if (playerId === socket.id && currentTime - lastSentTime > 100) {
-                    socket.emit("move", { id: playerId, x, y, velocityX, velocityY });
+                    socket.emit("move", { id: playerId, x, y });
                     lastSentTime = currentTime;
                 }
 
@@ -343,6 +351,7 @@
 
             step();
         }
+
 
             document.addEventListener("click", (event) => {
                     let clickedBoat = event.target.closest(".boat"); // Verifica se clicou em um barco
