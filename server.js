@@ -73,6 +73,9 @@ io.on("connection", (socket) => {
         }
     });
 
+    socket.on("pingTest", () => {
+        socket.emit("pongTest");
+    });
 
 
     socket.on("fireCannon", (data) => {
