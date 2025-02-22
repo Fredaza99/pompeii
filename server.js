@@ -1,16 +1,17 @@
-const express = require("express");
-const http = require("http");
-const socketIo = require("socket.io");
-const path = require("path");
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const path = require('path');
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
-
-const PORT = process.env.PORT || 3000;
-
-// Servir arquivos estáticos (index.html, imagens, etc.)
-app.use(express.static(path.join(__dirname, "public")));
+const io = socketIo(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 // Rota padrão para carregar o jogo
 app.get("/", (req, res) => {
