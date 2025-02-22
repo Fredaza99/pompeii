@@ -1,109 +1,80 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const path = require('path');
-const cors = require('cors');
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+const io = socketIo(server);
+
+const PORT = process.env.PORT || 3000;
+
+// Servir arquivos estáticos (index.html, imagens, etc.)
+app.use(express.static(path.join(__dirname, "public")));
+
+// Rota padrão para carregar o jogo
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors());
-
 let players = {};
-let playerHealth = {};
-const attackRange = 300; // 🔥 Definição correta do alcance
+let projectiles = [];
 
 io.on("connection", (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    players[socket.id] = { x: Math.random() * 800, y: Math.random() * 600, id: socket.id };
-    playerHealth[socket.id] = 100; // 🔥 Cada jogador começa com 100 de vida
+    players[socket.id] = {
+        x: Math.random() * 800,
+        y: Math.random() * 600,
+        angle: 0,
+    };
 
     socket.emit("currentPlayers", players);
-    io.emit("newPlayer", players[socket.id]);
-    
-    
-    socket.on("attack", (data) => {
-        let { attacker, target } = data;
+    socket.emit("setInitialPosition", players[socket.id]); // 🔥 Envia spawn correto
 
-        console.log(`🔥 Servidor recebeu ataque: ${attacker} atacando ${target}`);
+    socket.broadcast.emit("newPlayer", { id: socket.id, ...players[socket.id] });
 
-        if (!players[attacker] || !players[target]) {
-            console.error(`❌ ERRO: Atacante ou alvo inválidos!`);
-            return;
+    socket.on("updatePlayerFrame", (data) => {
+        if (players[data.id]) {
+            players[data.id].frameIndex = data.frameIndex;
+            io.emit("updatePlayer", players[data.id]); // Envia a atualização para todos
         }
-
-        let attackerX = players[attacker].x;
-        let attackerY = players[attacker].y;
-        let targetX = players[target].x;
-        let targetY = players[target].y;
-
-        let distance = Math.sqrt((targetX - attackerX) ** 2 + (targetY - attackerY) ** 2);
-
-        if (distance > attackRange) {
-            console.log(`🚫 ${attacker} tentou atacar ${target}, mas estava muito longe!`);
-            return;
-        }
-
-        if (playerHealth[target] === undefined) {
-            console.warn(`⚠️ Vida do jogador ${target} não encontrada! Inicializando com 100.`);
-            playerHealth[target] = 100;
-        }
-
-        // 🔥 Criar a animação da bala para todos os jogadores
-        io.emit("cannonFired", { attacker, target });
-
-        playerHealth[target] -= 10;
-        console.log(`💥 ${attacker} atacou ${target}, vida agora: ${playerHealth[target]}%`);
-
-        io.emit("updateHealth", { target, health: playerHealth[target] });
-
-        if (playerHealth[target] <= 0) {
-            console.log(`💀 ${target} foi destruído!`);
-            io.emit("playerDestroyed", target);
-            delete players[target];
-            delete playerHealth[target];
-        }
-    });
-
-    socket.on("pingTest", () => {
-        socket.emit("pongTest");
-    });
-
-
-
-    socket.on("fireCannon", (data) => {
-        console.log(`💥 ${data.attacker} disparou contra ${data.target}`);
-        io.emit("cannonFired", data);
     });
 
     socket.on("move", (data) => {
-        if (!players[data.id]) return;
-
-        // 🔥 Garante que o servidor só armazene a última posição válida
-        players[data.id].x = data.x;
-        players[data.id].y = data.y;
-
-        io.emit("playerMoved", { id: data.id, x: data.x, y: data.y });
+        if (players[socket.id]) {
+            players[socket.id].x = data.x;
+            players[socket.id].y = data.y;
+            players[socket.id].angle = data.angle;
+            players[socket.id].frameIndex = data.frameIndex; // 🔥 Salvar frameIndex no servidor
+            io.emit("updatePlayer", { id: socket.id, ...players[socket.id] });
+        }
     });
 
 
+
+
+    socket.on("shoot", (data) => {
+        if (players[socket.id]) {
+            let projectile = {
+                id: socket.id,
+                x: players[socket.id].x,
+                y: players[socket.id].y,
+                angle: data.angle,
+                speed: 5,
+            };
+            projectiles.push(projectile);
+            io.emit("newProjectile", projectile);
+        }
+    });
 
     socket.on("disconnect", () => {
         console.log(`Jogador desconectado: ${socket.id}`);
         delete players[socket.id];
-        delete playerHealth[socket.id];
-        io.emit("playerDisconnected", socket.id);
+        io.emit("removePlayer", socket.id);
     });
 });
 
-server.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
+server.listen(PORT, () => {
+    console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
