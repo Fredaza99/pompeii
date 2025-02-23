@@ -38,6 +38,7 @@
         const SPRITE_HEIGHT = 85;
         let animationInterval = null;
         let lastDirection = null;
+        let canShoot = true;
 
         let ships = {}; // Armazena todos os jogadores
         let projectiles = []; // Lista de projéteis ativos
@@ -135,10 +136,34 @@ socket.on("removePlayer", (playerId) => {
                 );
 
                 ctx.restore();
-            }
+             ctx.fillStyle = "red";
+             ctx.fillRect(player.x - 25, player.y + 30, 50, 5); // Fundo da barra
+             ctx.fillStyle = "green";
+             ctx.fillRect(player.x - 25, player.y + 30, (player.health / 100) * 50, 5); // Vida atual
+         }
 
-            requestAnimationFrame(drawShips);
+         requestAnimationFrame(drawShips);
+     }
+
+     function getClickedPlayer(event) {
+            let clickX = event.clientX;
+            let clickY = event.clientY;
+
+            for (let id in ships) {
+                if (id !== socket.id) { // Não pode atacar a si mesmo
+                    let player = ships[id];
+                    let dx = player.x - clickX;
+                    let dy = player.y - clickY;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 30) { // Se clicar perto o suficiente, retorna o alvo
+                        return id;
+                    }
+                }
+            }
+            return null;
         }
+
 
 
 
@@ -186,9 +211,14 @@ socket.on("removePlayer", (playerId) => {
 
 
         document.addEventListener("click", (event) => {
-            ship.targetX = event.clientX;
-            ship.targetY = event.clientY;
-        });
+                let targetId = getClickedPlayer(event);
+
+                if (targetId && canShoot) {
+                    socket.emit("shoot", { targetId });
+                    canShoot = false;
+                    setTimeout(() => { canShoot = true; }, 1000); // 1s de cooldown
+                }
+            });
 
         document.addEventListener("keydown", (event) => {
             if (event.code === "Space") {
