@@ -6,6 +6,9 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const ATTACK_RANGE = 200; // Distância máxima para atacar
+const FIRE_RATE = 1000; // Tempo de recarga (1 segundo)
+const DAMAGE = 10; // Dano por tiro
 
 const PORT = process.env.PORT || 3000;
 
@@ -55,17 +58,31 @@ io.on("connection", (socket) => {
 
 
     socket.on("shoot", (data) => {
-        if (players[socket.id]) {
-            let projectile = {
-                id: socket.id,
-                x: players[socket.id].x,
-                y: players[socket.id].y,
-                angle: data.angle,
-                speed: 5,
-            };
-            projectiles.push(projectile);
-            io.emit("newProjectile", projectile);
+        let player = players[socket.id];
+        let target = players[data.targetId];
+
+        if (!player || !target) return;
+
+        let now = Date.now();
+        if (now - player.lastShot < FIRE_RATE) return; // Bloqueia tiro se estiver no cooldown
+
+        let dx = target.x - player.x;
+        let dy = target.y - player.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > ATTACK_RANGE) return; // Se estiver fora do alcance, ignora
+
+        player.lastShot = now; // Atualiza tempo do último tiro
+
+        // Aplica dano ao alvo
+        target.health -= DAMAGE;
+        if (target.health <= 0) {
+            target.health = 100;
+            target.x = Math.random() * 800;
+            target.y = Math.random() * 600;
         }
+
+        io.emit("updatePlayer", { id: data.targetId, ...target });
     });
 
     socket.on("disconnect", () => {
