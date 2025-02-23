@@ -61,26 +61,43 @@ io.on("connection", (socket) => {
         let player = players[socket.id];
         let target = players[data.targetId];
 
-        if (!player || !target) return;
+        if (!player || !target) {
+            console.log(`❌ Erro: Atacante ou alvo inválido!`);
+            return;
+        }
 
         let now = Date.now();
-        if (now - player.lastShot < FIRE_RATE) return; // Bloqueia tiro se estiver no cooldown
+        if (now - player.lastShot < FIRE_RATE) {
+            console.log(`⏳ ${socket.id} tentou atirar, mas está no cooldown!`);
+            return;
+        }
 
         let dx = target.x - player.x;
         let dy = target.y - player.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > ATTACK_RANGE) return; // Se estiver fora do alcance, ignora
+        console.log(`🎯 ${socket.id} atacando ${data.targetId} a uma distância de ${distance}px`);
 
-        player.lastShot = now; // Atualiza tempo do último tiro
+        if (distance > ATTACK_RANGE) {
+            console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
+            return;
+        }
 
-        // Aplica dano ao alvo
+        console.log(`💥 Ataque confirmado! ${socket.id} acertou ${data.targetId}`);
+
+        player.lastShot = now;
         target.health -= DAMAGE;
+
+        io.emit("updateHealth", { target: data.targetId, health: target.health });
+
         if (target.health <= 0) {
+            console.log(`💀 ${data.targetId} foi destruído!`);
+            io.emit("playerDestroyed", data.targetId);
             target.health = 100;
             target.x = Math.random() * 800;
             target.y = Math.random() * 600;
         }
+
 
         io.emit("updatePlayer", { id: data.targetId, ...target });
     });
@@ -88,9 +105,12 @@ io.on("connection", (socket) => {
     socket.on("updateHealth", (data) => {
         if (ships[data.target]) {
             ships[data.target].health = data.health; // Atualiza a vida do jogador no cliente
-            console.log(`🩸 Vida de ${data.target} agora é ${data.health}%`);
+            console.log(`🩸 Vida do jogador ${data.target} agora é ${data.health}%`);
+        } else {
+            console.log(`⚠️ Erro: Não foi possível atualizar a vida do jogador ${data.target}`);
         }
     });
+
 
 
     socket.on("disconnect", () => {
