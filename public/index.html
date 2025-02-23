@@ -117,18 +117,18 @@ socket.on("removePlayer", (playerId) => {
         });
 
      function drawShips() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa a tela
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             for (let id in ships) {
                 let player = ships[id];
-
-                if (!player) continue; // Se o player for indefinido, ignora
+                if (!player) continue;
 
                 ctx.save();
                 ctx.translate(player.x, player.y);
 
-                let spriteX = (player.frameIndex || 0) * SPRITE_WIDTH; // Usa frameIndex ou 0
+                let spriteX = (player.frameIndex || 0) * SPRITE_WIDTH;
 
+                // 🔥 Desenha o navio
                 ctx.drawImage(
                     shipImage,
                     spriteX, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
@@ -136,16 +136,21 @@ socket.on("removePlayer", (playerId) => {
                 );
 
                 ctx.restore();
-                console.log(`Vida do jogador ${id}: ${player.health}`);
 
-             ctx.fillStyle = "red";
-             ctx.fillRect(player.x - 25, player.y + 30, 50, 5); // Fundo da barra
-             ctx.fillStyle = "green";
-             ctx.fillRect(player.x - 25, player.y + 30, (player.health / 100) * 50, 5); // Vida atual
-         }
+                // 🔥 Barra de vida abaixo do navio
+                let healthPercentage = player.health / 100;
+                let barWidth = 50;
+                let barHeight = 5;
 
-         requestAnimationFrame(drawShips);
-     }
+                ctx.fillStyle = "red";
+                ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth, barHeight); // Fundo da barra
+
+                ctx.fillStyle = "green";
+                ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth * healthPercentage, barHeight); // Vida atual
+            }
+
+            requestAnimationFrame(drawShips);
+        }
 
      function getClickedPlayer(event) {
             let clickX = event.clientX;
@@ -154,13 +159,15 @@ socket.on("removePlayer", (playerId) => {
             for (let id in ships) {
                 if (id !== socket.id) { // Não pode atacar a si mesmo
                     let player = ships[id];
-                    let dx = player.x - clickX;
-                    let dy = player.y - clickY;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance < 400) { 
-                        console.log("Jogador alvo encontrado:", id);
+                    // Definir área de clique do navio
+                    let shipLeft = player.x - SPRITE_WIDTH / 2;
+                    let shipRight = player.x + SPRITE_WIDTH / 2;
+                    let shipTop = player.y - SPRITE_HEIGHT / 2;
+                    let shipBottom = player.y + SPRITE_HEIGHT / 2;
 
+                    if (clickX >= shipLeft && clickX <= shipRight && clickY >= shipTop && clickY <= shipBottom) {
+                        console.log(`🎯 Alvo selecionado: ${id}`);
                         return id;
                     }
                 }
@@ -214,20 +221,20 @@ socket.on("removePlayer", (playerId) => {
         }
 
 
-        document.addEventListener("click", (event) => {
-                let targetId = getClickedPlayer(event);
+       document.addEventListener("click", (event) => {
+            let targetId = getClickedPlayer(event);
 
-                if (targetId && canShoot) {
-                    // 🔥 Se clicar em um inimigo, atira
-                    socket.emit("shoot", { targetId });
-                    canShoot = false;
-                    setTimeout(() => { canShoot = true; }, 1000); // 1s de cooldown
-                } else {
-                    // 🔥 Se não clicar em inimigo, move o barco
-                    ship.targetX = event.clientX;
-                    ship.targetY = event.clientY;
-                }
-            });
+            if (targetId && canShoot) {
+                // 🔥 Se clicar em um inimigo, ataca
+                socket.emit("shoot", { targetId });
+                canShoot = false;
+                setTimeout(() => { canShoot = true; }, 1000); // 1s de cooldown
+            } else {
+                // 🔥 Se não clicar em inimigo, move o barco
+                ship.targetX = event.clientX;
+                ship.targetY = event.clientY;
+            }
+        });
 
         document.addEventListener("keydown", (event) => {
             if (event.code === "Space") {
