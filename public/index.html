@@ -211,9 +211,19 @@ socket.on("removePlayer", (playerId) => {
 
 
         document.addEventListener("click", (event) => {
-            ship.targetX = event.clientX;
-            ship.targetY = event.clientY;
-        });
+                let targetId = getClickedPlayer(event);
+
+                if (targetId && canShoot) {
+                    // 🔥 Se clicar em um inimigo, atira
+                    socket.emit("shoot", { targetId });
+                    canShoot = false;
+                    setTimeout(() => { canShoot = true; }, 1000); // 1s de cooldown
+                } else {
+                    // 🔥 Se não clicar em inimigo, move o barco
+                    ship.targetX = event.clientX;
+                    ship.targetY = event.clientY;
+                }
+            });
 
         document.addEventListener("keydown", (event) => {
             if (event.code === "Space") {
