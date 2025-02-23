@@ -61,22 +61,35 @@ io.on("connection", (socket) => {
         let player = players[socket.id];
         let target = players[data.targetId];
 
-        if (!player || !target) return;
+        if (!player || !target) {
+            console.log("Erro: Jogador ou alvo não encontrado!");
+            return;
+        }
 
         let now = Date.now();
-        if (now - player.lastShot < FIRE_RATE) return; // Bloqueia tiro se estiver no cooldown
+        if (now - player.lastShot < FIRE_RATE) {
+            console.log("Tiro bloqueado: Cooldown ativo.");
+            return;
+        }
 
         let dx = target.x - player.x;
         let dy = target.y - player.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > ATTACK_RANGE) return; // Se estiver fora do alcance, ignora
+        console.log(`Distância entre ${socket.id} e ${data.targetId}:`, distance);
 
-        player.lastShot = now; // Atualiza tempo do último tiro
+        if (distance > ATTACK_RANGE) {
+            console.log("Tiro bloqueado: Fora do alcance!");
+            return;
+        }
 
-        // Aplica dano ao alvo
+        console.log(`${socket.id} atirou em ${data.targetId}!`);
+
+        player.lastShot = now;
         target.health -= DAMAGE;
+
         if (target.health <= 0) {
+            console.log(`${data.targetId} foi destruído! Respawnando...`);
             target.health = 100;
             target.x = Math.random() * 800;
             target.y = Math.random() * 600;
@@ -84,6 +97,7 @@ io.on("connection", (socket) => {
 
         io.emit("updatePlayer", { id: data.targetId, ...target });
     });
+
 
     socket.on("disconnect", () => {
         console.log(`Jogador desconectado: ${socket.id}`);
