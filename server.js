@@ -30,6 +30,7 @@ io.on("connection", (socket) => {
         x: Math.random() * 800,
         y: Math.random() * 600,
         angle: 0,
+        health: 100 // 🔥 Adiciona vida ao jogador
     };
 
     socket.emit("currentPlayers", players);
@@ -66,8 +67,14 @@ io.on("connection", (socket) => {
             return;
         }
 
+        // 🔥 Garantir que o alvo tenha vida
+        if (target.health === undefined) {
+            console.log(`⚠️ Erro: Target ${data.targetId} não tem health definido!`);
+            return;
+        }
+
         let now = Date.now();
-        if (now - player.lastShot < FIRE_RATE) {
+        if (now - (player.lastShot || 0) < FIRE_RATE) {
             console.log(`⏳ ${socket.id} tentou atirar, mas está no cooldown!`);
             return;
         }
@@ -86,7 +93,7 @@ io.on("connection", (socket) => {
         console.log(`💥 Ataque confirmado! ${socket.id} acertou ${data.targetId}`);
 
         player.lastShot = now;
-        target.health -= DAMAGE;
+        target.health -= DAMAGE; // 🔥 Agora a vida é corretamente reduzida
 
         io.emit("updateHealth", { target: data.targetId, health: target.health });
 
@@ -98,9 +105,9 @@ io.on("connection", (socket) => {
             target.y = Math.random() * 600;
         }
 
-
         io.emit("updatePlayer", { id: data.targetId, ...target });
     });
+
 
     socket.on("updateHealth", (data) => {
         if (ships[data.target]) {
