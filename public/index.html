@@ -136,6 +136,8 @@ socket.on("removePlayer", (playerId) => {
                 );
 
                 ctx.restore();
+                console.log(`Vida do jogador ${id}: ${player.health}`);
+
              ctx.fillStyle = "red";
              ctx.fillRect(player.x - 25, player.y + 30, 50, 5); // Fundo da barra
              ctx.fillStyle = "green";
@@ -156,7 +158,9 @@ socket.on("removePlayer", (playerId) => {
                     let dy = player.y - clickY;
                     let distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance < 30) { // Se clicar perto o suficiente, retorna o alvo
+                    if (distance < 400) { 
+                        console.log("Jogador alvo encontrado:", id);
+
                         return id;
                     }
                 }
