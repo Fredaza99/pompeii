@@ -211,14 +211,9 @@ socket.on("removePlayer", (playerId) => {
 
 
         document.addEventListener("click", (event) => {
-                let targetId = getClickedPlayer(event);
-
-                if (targetId && canShoot) {
-                    socket.emit("shoot", { targetId });
-                    canShoot = false;
-                    setTimeout(() => { canShoot = true; }, 1000); // 1s de cooldown
-                }
-            });
+            ship.targetX = event.clientX;
+            ship.targetY = event.clientY;
+        });
 
         document.addEventListener("keydown", (event) => {
             if (event.code === "Space") {
