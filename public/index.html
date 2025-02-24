@@ -276,13 +276,21 @@ socket.on("removePlayer", (playerId) => {
                 ctx.fill();
             }
 
+            function drawImpact(ctx, x, y, size, opacity) {
+                    ctx.fillStyle = `rgba(255, 140, 0, ${opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
             function drawImpacts() {
                     impacts.forEach((impact, index) => {
                         drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
-                        impact.size += 1;
-                        impact.opacity -= 0.1;
+                        impact.size += 1.5; // Aumenta gradativamente o tamanho da explosão
+                        impact.opacity -= 0.05; // Dissipa suavemente
+
                         if (impact.opacity <= 0) {
-                            impacts.splice(index, 1); // Remove a explosão após ela sumir
+                            impacts.splice(index, 1); // Remove a explosão da lista quando sumir
                         }
                     });
 
