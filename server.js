@@ -108,18 +108,20 @@ function isTargetInRange(attacker, target) {
         // 🔥 Cálculo de velocidade fixa para evitar bug de aceleração
         let speed = 5; // 🔥 Velocidade fixa
         let angle = Math.atan2(dy, dx);
-        let velocityX = Math.cos(angle) * speed;
-        let velocityY = Math.sin(angle) * speed;
+        let velocityX = Math.cos(angle) * 5;
+        let velocityY = Math.sin(angle) * 5;
 
         // 🔥 Disparo de múltiplos projéteis
         for (let i = 0; i < 8; i++) {
             setTimeout(() => {
+
                 let projectile = {
                     id: socket.id,
                     x: player.x,
                     y: player.y,
-                    velocityX: velocityX, // 🔥 Movimento fixo
+                    velocityX: velocityX,
                     velocityY: velocityY,
+                    angle: angle, // 🔥 Adicionando ângulo para o cliente
                     createdAt: Date.now(),
                     targetId: data.targetId
                 };
