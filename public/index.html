@@ -310,8 +310,7 @@ socket.on("removePlayer", (playerId) => {
 
                     if (!p) continue;
 
-                    // 🔥 Define a velocidade apenas no primeiro frame do projétil
-                    if (!p.velocityX || !p.velocityY) {
+                   if (p.velocityX === undefined || p.velocityY === undefined) {
                         p.velocityX = Math.cos(p.angle) * p.speed;
                         p.velocityY = Math.sin(p.angle) * p.speed;
                     }
@@ -330,7 +329,7 @@ socket.on("removePlayer", (playerId) => {
 
                         if (distance < 20) { // Se o projétil atingir o alvo
                             console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                            impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Criar explosão
+                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 }); // Criar explosão
 
                             projectiles.splice(i, 1); // 🔥 Agora removemos o projétil corretamente
                         }
