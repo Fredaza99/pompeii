@@ -119,12 +119,9 @@ io.on("connection", (socket) => {
             projectiles.forEach((p, index) => {
                 if (!p) return;
 
-                // 🔥 O projétil se move na mesma velocidade fixa sem acelerar
-                const velocityX = Math.cos(p.angle) * p.speed;
-                const velocityY = Math.sin(p.angle) * p.speed;
-
-                p.x += velocityX;
-                p.y += velocityY;
+                // 🔥 Agora, usamos a velocidade que já foi definida na criação do projétil
+                p.x += p.velocityX;
+                p.y += p.velocityY;
 
                 // 🔥 Verifica colisão com o alvo
                 let target = players[p.targetId];
@@ -148,6 +145,7 @@ io.on("connection", (socket) => {
 
             io.emit("updateProjectiles", projectiles);
         }, 50);
+
 
 
 
