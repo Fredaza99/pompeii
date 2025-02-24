@@ -114,7 +114,6 @@ socket.on("removePlayer", (playerId) => {
 
 
         socket.on("newProjectile", (projectile) => {
-            console.log(`🟡 Novo projétil recebido no cliente: X:${projectile.x}, Y:${projectile.y}`);
 
 
                 // 🔥 Verifica se o projétil possui posição válida
@@ -325,58 +324,49 @@ socket.on("removePlayer", (playerId) => {
                     impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
                 });
 
-          function drawProjectiles() {
-                console.log(`🔵 Renderizando ${projectiles.length} projéteis.`);
+         function drawProjectiles() {
 
-                let toRemove = []; // Lista de projéteis que serão removidos
+                let toRemove = [];
 
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
-
                     if (!p) continue;
-                    console.log(`🎯 Desenhando projétil ${i} em X: ${p.x}, Y: ${p.y}`);
 
 
-                    // 🔥 Garante que a velocidade só seja definida uma vez (no servidor)
                     if (p.velocityX === undefined || p.velocityY === undefined) {
                         console.warn(`⚠️ Projétil sem velocidade definida! Definindo padrão.`);
-                        p.velocityX = Math.cos(p.angle) * 5; // Velocidade fixa
+                        p.velocityX = Math.cos(p.angle) * 5;
                         p.velocityY = Math.sin(p.angle) * 5;
                     }
 
-                    // 🔥 Movimenta o projétil APENAS usando a velocidade definida
                     p.x += p.velocityX;
                     p.y += p.velocityY;
 
                     drawLuminousBall(ctx, p.x, p.y);
 
-                    // 🔥 Verifica se o projétil atingiu o alvo
                     let target = ships[p.targetId];
                     if (target) {
                         let dx = target.x - p.x;
                         let dy = target.y - p.y;
                         let distance = Math.sqrt(dx * dx + dy * dy);
 
-                        if (distance < 20) { // 🔥 Se o projétil atingir o alvo
+                        if (distance < 20) {
                             console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 }); // Criar explosão
-
-                            toRemove.push(i); // 🔥 Marca para remover depois
+                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 });
+                            toRemove.push(i);
                         }
                     }
 
-                    // 🔥 Remove projéteis antigos após 2 segundos para evitar acúmulo infinito
                     if (Date.now() - p.createdAt > 2000) {
-                        console.log(`🕒 Projétil ${p.id} expirou e foi removido.`);
                         toRemove.push(i);
                     }
                 }
 
-                // 🔥 Removemos os projéteis marcados após o loop para evitar erro de índice
                 toRemove.forEach(index => projectiles.splice(index, 1));
 
-                requestAnimationFrame(drawProjectiles); // 🔥 Mantém o loop de renderização
+                requestAnimationFrame(drawProjectiles);
             }
+
 
 
 
