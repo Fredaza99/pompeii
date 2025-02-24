@@ -111,8 +111,14 @@ io.on("connection", (socket) => {
 
         setInterval(() => {
             projectiles.forEach((p, index) => {
-                p.x += Math.cos(p.angle) * p.speed;
-                p.y += Math.sin(p.angle) * p.speed;
+                if (!p) return;
+
+                // 🔥 O projétil se move na mesma velocidade fixa sem acelerar
+                const velocityX = Math.cos(p.angle) * p.speed;
+                const velocityY = Math.sin(p.angle) * p.speed;
+
+                p.x += velocityX;
+                p.y += velocityY;
 
                 // 🔥 Verifica colisão com o alvo
                 let target = players[p.targetId];
@@ -123,12 +129,12 @@ io.on("connection", (socket) => {
 
                     if (distance < 20) { // Se o projétil atingir o alvo
                         console.log(`💥 Projétil atingiu ${p.targetId}! Criando impacto.`);
-                        io.emit("impact", { x: p.x, y: p.y }); // Dispara o evento de impacto
+                        io.emit("impact", { x: p.x, y: p.y });
                         projectiles.splice(index, 1);
                     }
                 }
 
-                // Remove projéteis após 2 segundos (para não ficarem infinitos)
+                // Remove projéteis após 2 segundos para evitar acúmulo
                 if (Date.now() - p.createdAt > 2000) {
                     projectiles.splice(index, 1);
                 }
@@ -136,6 +142,7 @@ io.on("connection", (socket) => {
 
             io.emit("updateProjectiles", projectiles);
         }, 50);
+
 
 
 
