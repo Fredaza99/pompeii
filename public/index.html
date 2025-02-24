@@ -34,6 +34,9 @@
 
         let shipImage = new Image();
         shipImage.src = "/images/navio_spritesheet.png";
+        let healthIcon = new Image();
+        healthIcon.src = "/images/rei.gif"; // Coloque o caminho correto do seu ícone de vida
+
 
         const SPRITE_WIDTH = 83;
         const SPRITE_HEIGHT = 85;
@@ -155,12 +158,18 @@ socket.on("removePlayer", (playerId) => {
                 let healthPercentage = player.health / 100;
                 let barWidth = 80;
                 let barHeight = 3;
+                
+                let iconSize = 14; // Ajuste o tamanho conforme necessário
+                let iconX = player.x - (barWidth / 2) - iconSize - 5; // Posiciona à esquerda da barra
+                let iconY = barY - (iconSize / 4); 
+
+                ctx.drawImage(healthIcon, iconX, iconY, iconSize, iconSize); // Desenha o ícone
 
                 ctx.fillStyle = "red";
-                ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth, barHeight); // Fundo da barra
+                ctx.fillRect(player.x - barWidth / 2, player.y + 40, barWidth, barHeight); // Fundo da barra
 
                 ctx.fillStyle = "green";
-                ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth * healthPercentage, barHeight); // Vida atual
+                ctx.fillRect(player.x - barWidth / 2, player.y + 40, barWidth * healthPercentage, barHeight); // Vida atual
             }
 
             drawProjectiles();
