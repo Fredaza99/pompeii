@@ -24,24 +24,25 @@ let players = {};
 let projectiles = [];
 
 io.on("connection", (socket) => {
+    console.log("Jogador conectado, aguardando nome:", socket.id);
 
-    players[socket.id] = {
-        x: Math.random() * 800,
-        y: Math.random() * 600,
-        angle: 0,
-        health: 100 // 🔥 Adiciona vida ao jogador
-    };
+    socket.on("setName", (playerName) => {
+        if (!playerName) return;
 
-    socket.emit("currentPlayers", players);
-    socket.emit("setInitialPosition", players[socket.id]); // 🔥 Envia spawn correto
+        // 🔥 Cria o jogador SOMENTE após definir um nome
+        players[socket.id] = {
+            x: Math.random() * 800,
+            y: Math.random() * 600,
+            angle: 0,
+            health: 100,
+            name: playerName
+        };
 
-    socket.broadcast.emit("newPlayer", { id: socket.id, ...players[socket.id] });
+        socket.emit("currentPlayers", players);
+        socket.emit("setInitialPosition", players[socket.id]);
+        socket.broadcast.emit("newPlayer", { id: socket.id, ...players[socket.id] });
 
-    socket.on("updatePlayerFrame", (data) => {
-        if (players[data.id]) {
-            players[data.id].frameIndex = data.frameIndex;
-            io.emit("updatePlayer", players[data.id]); // Envia a atualização para todos
-        }
+        console.log(`Novo jogador conectado: ${playerName} (${socket.id})`);
     });
 
     socket.on("move", (data) => {
@@ -49,7 +50,7 @@ io.on("connection", (socket) => {
             players[socket.id].x = data.x;
             players[socket.id].y = data.y;
             players[socket.id].angle = data.angle;
-            players[socket.id].frameIndex = data.frameIndex; // 🔥 Salvar frameIndex no servidor
+            players[socket.id].frameIndex = data.frameIndex;
             io.emit("updatePlayer", { id: socket.id, ...players[socket.id] });
         }
     });
