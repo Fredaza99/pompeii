@@ -66,79 +66,76 @@ function isTargetInRange(attacker, target) {
     return distance <= ATTACK_RANGE; // 🔥 Retorna true se estiver dentro do alcance
 }
 
-socket.on("shoot", (data) => {
-    let player = players[socket.id];
-    let target = players[data.targetId];
+    socket.on("shoot", (data) => {
+        let player = players[socket.id];
+        let target = players[data.targetId];
 
-    if (!player || !target) return;
+        if (!player || !target) return;
 
-    let now = Date.now();
-    if (now - (player.lastShot || 0) < FIRE_RATE) {
-        console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
-        return;
-    }
+        let now = Date.now();
+        if (now - (player.lastShot || 0) < FIRE_RATE) {
+            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
+            return;
+        }
 
-    if (!isTargetInRange(player, target)) {
-        console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
-        return;
-    }
+        // 🔥 Verifica se o alvo está dentro do alcance
+        let dx = target.x - player.x;
+        let dy = target.y - player.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
 
-    player.lastShot = now;
-    console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
+        if (distance > ATTACK_RANGE) {
+            console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
+            return;
+        }
 
-    // 🔥 Aplica dano único ao alvo
-    target.health -= DAMAGE;
-    console.log(`🩸 Vida do jogador ${data.targetId} agora é ${target.health}`);
-    io.emit("updateHealth", { target: data.targetId, health: target.health });
+        player.lastShot = now;
+        console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
 
-    // 🔥 Se o alvo morreu, ele é respawnado
-    if (target.health <= 0) {
-        console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
-        target.health = 100;
-        target.x = Math.random() * 800;
-        target.y = Math.random() * 600;
-        io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
-    }
+        // 🔥 Aplica dano ao alvo
+        target.health -= DAMAGE;
+        console.log(`🩸 Vida do jogador ${data.targetId} agora é ${target.health}`);
+        io.emit("updateHealth", { target: data.targetId, health: target.health });
 
-    // 🔥 Disparo de múltiplos projéteis com velocidade fixa
-    let dx = target.x - player.x;
-    let dy = target.y - player.y;
-    let distance = Math.sqrt(dx * dx + dy * dy);
-    let speed = 5;
+        // 🔥 Se o alvo morreu, ele é respawnado
+        if (target.health <= 0) {
+            console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
+            target.health = 100;
+            target.x = Math.random() * 800;
+            target.y = Math.random() * 600;
+            io.emit("updatePlayer", { id: data.targetId, ...target });
+        }
 
-    let steps = distance / speed;
-    let stepX = dx / steps;
-    let stepY = dy / steps;
+        // 🔥 Cálculo de velocidade fixa para evitar bug de aceleração
+        let speed = 5; // 🔥 Velocidade fixa
+        let angle = Math.atan2(dy, dx);
+        let velocityX = Math.cos(angle) * speed;
+        let velocityY = Math.sin(angle) * speed;
 
-    for (let i = 0; i < 8; i++) {
-        setTimeout(() => {
-            let projectile = {
-                id: socket.id,
-                x: player.x,
-                y: player.y,
-                stepX: stepX, // 🔥 Mantemos os passos de movimento fixos
-                stepY: stepY,
-                createdAt: Date.now(),
-                targetId: data.targetId
-            };
-            projectiles.push(projectile);
-            io.emit("newProjectile", projectile);
-        }, i * 50);
-    }
+        // 🔥 Disparo de múltiplos projéteis
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                let projectile = {
+                    id: socket.id,
+                    x: player.x,
+                    y: player.y,
+                    velocityX: velocityX, // 🔥 Movimento fixo
+                    velocityY: velocityY,
+                    createdAt: Date.now(),
+                    targetId: data.targetId
+                };
+                projectiles.push(projectile);
+                io.emit("newProjectile", projectile);
+            }, i * 50);
+        }
 
-    console.log(`✅ ${socket.id} finalizou o disparo contra ${data.targetId}`);
-
-
-// 🔥 Atualiza a posição dos projéteis no servidor
+    // 🔥 Atualiza a posição dos projéteis no servidor
     setInterval(() => {
-        let toRemove = []; // Lista auxiliar para armazenar projéteis a serem removidos
-
         for (let i = projectiles.length - 1; i >= 0; i--) {
             let p = projectiles[i];
             if (!p) continue;
 
-            p.x += p.stepX;
-            p.y += p.stepY;
+            p.x += p.velocityX;
+            p.y += p.velocityY;
 
             let target = players[p.targetId];
             if (target) {
@@ -146,24 +143,22 @@ socket.on("shoot", (data) => {
                 let dy = target.y - p.y;
                 let distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 10) { // 🔥 Se atingir o alvo, marca para remoção
+                if (distance < 10) { // 🔥 Se atingir o alvo, remove o projétil
                     console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                    io.emit("impact", { x: p.x, y: p.y }); // Enviar impacto para o cliente
-                    toRemove.push(i); // 🔥 Marca para remover depois
+                    io.emit("impact", { x: p.x, y: p.y });
+                    projectiles.splice(i, 1);
                 }
             }
 
             // 🔥 Remove projéteis antigos após 2 segundos
             if (Date.now() - p.createdAt > 2000) {
-                toRemove.push(i); // 🔥 Marca para remover projéteis expirados
+                projectiles.splice(i, 1);
             }
         }
 
-        // 🔥 Agora removemos os projéteis FORA do loop para evitar erro de índice
-        toRemove.forEach(index => projectiles.splice(index, 1));
-
         io.emit("updateProjectiles", projectiles);
     }, 50);
+
 
 
 
