@@ -365,7 +365,8 @@ socket.on("removePlayer", (playerId) => {
                         }
                     }
 
-                    if (Date.now() - p.createdAt > 2000) {
+                    if (Date.now() - p.createdAt > 5000) { 
+
                         toRemove.push(i);
                     }
                 }
