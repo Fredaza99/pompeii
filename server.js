@@ -91,6 +91,10 @@ io.on("connection", (socket) => {
         
         let initialX = player.x;
         let initialY = player.y;
+        let speed = 5; 
+
+        let velocityX = Math.cos(angle) * speed;
+        let velocityY = Math.sin(angle) * speed;
 
         for (let i = 0; i < 8; i++) {
             setTimeout(() => {
@@ -99,7 +103,9 @@ io.on("connection", (socket) => {
                     x: initialX, // 🔥 Agora o projétil nasce na posição original do barco
                     y: initialY,
                     angle: angle,
-                    speed: 7,
+                    velocityX: velocityX, // 🔥 Mantemos a velocidade fixa
+                    velocityY: velocityY,
+                    speed: speed,
                     createdAt: Date.now(),
                     targetId: data.targetId // Associa ao alvo para animação de impacto
                 };
