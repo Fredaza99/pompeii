@@ -73,15 +73,17 @@ function isTargetInRange(attacker, target) {
         if (!player || !target) return;
 
         let now = Date.now();
-        if (now - (player.lastShot || 0) < FIRE_RATE) {
-            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
-            return;
-        }
+        if (now - (player.lastShot || 0) < FIRE_RATE) return;
 
-        // 🔥 Verifica se o alvo está dentro do alcance
+        player.lastShot = now;
+
         let dx = target.x - player.x;
         let dy = target.y - player.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
+
+        let initialX = player.x;
+        let initialY = player.y;
 
         if (distance > ATTACK_RANGE) {
             console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
