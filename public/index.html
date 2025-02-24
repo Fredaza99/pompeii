@@ -305,17 +305,18 @@ socket.on("removePlayer", (playerId) => {
 
             // Função principal para desenhar projéteis e impactos
          function drawProjectiles() {
-                    projectiles.forEach((p) => {
-                 if (!p) return;
+                // 🔥 Percorre a lista de projéteis de trás para frente para evitar erro ao remover
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    let p = projectiles[i];
 
-                 // 🔥 O projétil mantém a mesma velocidade sem aumentar progressivamente
-                 const velocityX = Math.cos(p.angle) * p.speed;
-                 const velocityY = Math.sin(p.angle) * p.speed;
+                    if (!p) continue;
 
-                 p.x += velocityX;
-                 p.y += velocityY;
+                    // 🔥 O projétil mantém a mesma velocidade sem acelerar progressivamente
+                    const velocityX = Math.cos(p.angle) * p.speed;
+                    const velocityY = Math.sin(p.angle) * p.speed;
 
-                 
+                    p.x += velocityX;
+                    p.y += velocityY;
 
                     // 🔥 Desenha o projétil brilhante
                     drawLuminousBall(ctx, p.x, p.y);
@@ -330,10 +331,11 @@ socket.on("removePlayer", (playerId) => {
                         if (distance < 20) { // Se o projétil atingir o alvo
                             console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
                             impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Criar explosão
-                            projectiles.splice(index, 1); // Remove o projétil do array
+
+                            projectiles.splice(i, 1); // 🔥 Agora removemos o projétil corretamente
                         }
                     }
-                });
+                }
             }
 
 
