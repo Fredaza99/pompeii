@@ -65,7 +65,10 @@ io.on("connection", (socket) => {
         if (!player || !target) return;
 
         let now = Date.now();
-        if (now - (player.lastShot || 0) < FIRE_RATE) return;
+        if (now - (player.lastShot || 0) < FIRE_RATE) {
+            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
+            return;
+        }
 
         // 🔥 Calcula a distância entre o jogador e o inimigo
         let dx = target.x - player.x;
@@ -88,13 +91,16 @@ io.on("connection", (socket) => {
 
         io.emit("updateHealth", { target: data.targetId, health: target.health });
 
+        // 🔥 Se o alvo morreu, ele é respawnado
         if (target.health <= 0) {
             console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
             target.health = 100;
             target.x = Math.random() * 800;
             target.y = Math.random() * 600;
+            io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
         }
 
+        // 🔥 Disparo de múltiplos projéteis
         let initialX = player.x;
         let initialY = player.y;
         let speed = 5;
@@ -106,20 +112,23 @@ io.on("connection", (socket) => {
             setTimeout(() => {
                 let projectile = {
                     id: socket.id,
-                    x: initialX, // 🔥 Agora o projétil nasce na posição original do barco
+                    x: initialX,
                     y: initialY,
                     angle: angle,
-                    velocityX: velocityX, // 🔥 Mantemos a velocidade fixa
+                    velocityX: velocityX,
                     velocityY: velocityY,
                     speed: speed,
                     createdAt: Date.now(),
-                    targetId: data.targetId // Associa ao alvo para animação de impacto
+                    targetId: data.targetId
                 };
                 projectiles.push(projectile);
                 io.emit("newProjectile", projectile);
-                console.log(`🔵 Projétil ${i + 1} disparado por ${socket.id}`);
             }, i * 50);
         }
+
+        console.log(`✅ ${socket.id} finalizou o disparo contra ${data.targetId}`);
+    
+
 
         setInterval(() => {
             projectiles.forEach((p, index) => {
