@@ -130,35 +130,41 @@ socket.on("shoot", (data) => {
 
 
 // 🔥 Atualiza a posição dos projéteis no servidor
-setInterval(() => {
-    for (let i = projectiles.length - 1; i >= 0; i--) {
-        let p = projectiles[i];
-        if (!p) continue;
+    setInterval(() => {
+        let toRemove = []; // Lista auxiliar para armazenar projéteis a serem removidos
 
-        p.x += p.stepX;
-        p.y += p.stepY;
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            let p = projectiles[i];
+            if (!p) continue;
 
-        let target = players[p.targetId];
-        if (target) {
-            let dx = target.x - p.x;
-            let dy = target.y - p.y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
+            p.x += p.stepX;
+            p.y += p.stepY;
 
-            if (distance < 10) { // 🔥 Se atingir o alvo, remove o projétil
-                console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                io.emit("impact", { x: p.x, y: p.y }); // Enviar impacto para o cliente
-                projectiles.splice(i, 1);
+            let target = players[p.targetId];
+            if (target) {
+                let dx = target.x - p.x;
+                let dy = target.y - p.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 10) { // 🔥 Se atingir o alvo, marca para remoção
+                    console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
+                    io.emit("impact", { x: p.x, y: p.y }); // Enviar impacto para o cliente
+                    toRemove.push(i); // 🔥 Marca para remover depois
+                }
+            }
+
+            // 🔥 Remove projéteis antigos após 2 segundos
+            if (Date.now() - p.createdAt > 2000) {
+                toRemove.push(i); // 🔥 Marca para remover projéteis expirados
             }
         }
 
-        // 🔥 Remove projéteis antigos após 2 segundos
-        if (Date.now() - p.createdAt > 2000) {
-            projectiles.splice(i, 1);
-        }
-    }
+        // 🔥 Agora removemos os projéteis FORA do loop para evitar erro de índice
+        toRemove.forEach(index => projectiles.splice(index, 1));
 
-    io.emit("updateProjectiles", projectiles);
-}, 50);
+        io.emit("updateProjectiles", projectiles);
+    }, 50);
+
 
 
 
