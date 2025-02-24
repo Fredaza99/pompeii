@@ -63,50 +63,61 @@ io.on("connection", (socket) => {
         let target = players[data.targetId];
 
         if (!player || !target) {
-            console.log(`❌ Erro: Atacante ou alvo inválido!`);
-            return;
-        }
-
-        // 🔥 Garantir que o alvo tenha vida
-        if (target.health === undefined) {
-            console.log(`⚠️ Erro: Target ${data.targetId} não tem health definido!`);
+            console.log(`❌ Erro: Atacante (${socket.id}) ou alvo (${data.targetId}) não encontrado!`);
             return;
         }
 
         let now = Date.now();
         if (now - (player.lastShot || 0) < FIRE_RATE) {
-            console.log(`⏳ ${socket.id} tentou atirar, mas está no cooldown!`);
+            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown!`);
             return;
         }
+
+        player.lastShot = now;
 
         let dx = target.x - player.x;
         let dy = target.y - player.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
+        let angle = Math.atan2(dy, dx);
 
-        console.log(`🎯 ${socket.id} atacando ${data.targetId} a uma distância de ${distance}px`);
+        console.log(`💥 ${socket.id} disparou contra ${data.targetId}, causando dano único!`);
 
-        if (distance > ATTACK_RANGE) {
-            console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
-            return;
-        }
-
-        console.log(`💥 Ataque confirmado! ${socket.id} acertou ${data.targetId}`);
-
-        player.lastShot = now;
-        target.health -= DAMAGE; // 🔥 Agora a vida é corretamente reduzida
+        // 🔥 Aplica dano único ao alvo
+        target.health -= DAMAGE;
+        console.log(`🩸 Vida do jogador ${data.targetId} agora é ${target.health}`);
 
         io.emit("updateHealth", { target: data.targetId, health: target.health });
 
         if (target.health <= 0) {
-            console.log(`💀 ${data.targetId} foi destruído!`);
-            io.emit("playerDestroyed", data.targetId);
+            console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
             target.health = 100;
             target.x = Math.random() * 800;
             target.y = Math.random() * 600;
         }
 
+        // Criar efeito visual de 8 projéteis, mas sem dano repetido
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                let projectile = {
+                    id: socket.id,
+                    x: player.x,
+                    y: player.y,
+                    angle: angle,
+                    speed: 5,
+                    createdAt: Date.now(),
+                    targetId: data.targetId // Associa ao alvo para animação de impacto
+                };
+                projectiles.push(projectile);
+                io.emit("newProjectile", projectile);
+                console.log(`🔵 Projétil ${i + 1} disparado por ${socket.id}`);
+            }, i * 50);
+        }
+
+        // 🔥 Atualiza o alvo para todos os clientes
         io.emit("updatePlayer", { id: data.targetId, ...target });
+        console.log(`📡 Enviando updatePlayer para ${data.targetId}:`, target);
     });
+
+
 
 
     socket.on("updateHealth", (data) => {
