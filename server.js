@@ -127,7 +127,7 @@ io.on("connection", (socket) => {
                     if (distance < 20) { // Se o projétil atingir o alvo
                         console.log(`💥 Projétil atingiu ${p.targetId}! Criando impacto.`);
                         io.emit("impact", { x: p.x, y: p.y }); // Dispara o evento de impacto
-                        projectiles.splice(index, 1); // Remove o projétil
+                        projectiles.splice(index, 1);
                     }
                 }
 
@@ -139,6 +139,7 @@ io.on("connection", (socket) => {
 
             io.emit("updateProjectiles", projectiles);
         }, 50);
+
 
 
         // 🔥 Atualiza o alvo para todos os clientes
