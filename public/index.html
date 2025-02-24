@@ -114,16 +114,21 @@ socket.on("removePlayer", (playerId) => {
 
 
         socket.on("newProjectile", (projectile) => {
-
-
-                // 🔥 Verifica se o projétil possui posição válida
-                if (!projectile.x || !projectile.y) {
-                    console.error("❌ Projétil recebido com posição inválida!", projectile);
+                if (!projectile || projectile.x === undefined || projectile.y === undefined) {
+                    console.error("❌ Projétil recebido com dados inválidos!", projectile);
                     return;
                 }
 
+                // 🔥 Garante que o ângulo esteja presente para evitar projéteis parados
+                if (projectile.angle === undefined) {
+                    console.warn("⚠️ Projétil recebido sem ângulo! Definindo padrão.");
+                    projectile.angle = Math.atan2(projectile.velocityY, projectile.velocityX);
+                }
+
+                console.log(`🟡 Cliente recebeu projétil:`, projectile);
                 projectiles.push(projectile);
             });
+
 
 
      function drawShips() {
@@ -333,10 +338,11 @@ socket.on("removePlayer", (playerId) => {
                     if (!p) continue;
 
 
-                    if (p.velocityX === undefined || p.velocityY === undefined) {
-                        console.warn(`⚠️ Projétil sem velocidade definida! Definindo padrão.`);
-                        p.velocityX = Math.cos(p.angle) * 5;
-                        p.velocityY = Math.sin(p.angle) * 5;
+                    if (p.angle !== undefined) {
+                        p.x += Math.cos(p.angle) * 5;
+                        p.y += Math.sin(p.angle) * 5;
+                    } else {
+                        console.warn(`⚠️ Projétil sem ângulo!`, p);
                     }
 
                     p.x += p.velocityX;
