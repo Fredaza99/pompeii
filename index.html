@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warships Battle Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: url('images/seaback.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+
+    <script>
+    const socket = io("https://pompeii.up.railway.app");
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let shipImage = new Image();
+        shipImage.src = "/images/navio_spritesheet.png";
+
+        const SPRITE_WIDTH = 83;
+        const SPRITE_HEIGHT = 85;
+        let animationInterval = null;
+        let lastDirection = null;
+        let canShoot = true;
+
+        let ships = {}; 
+        let projectiles = [];
+        let impacts = [];
+
+       let ship = {
+            x: 300, 
+            y: 300,
+            targetX: 300,
+            targetY: 300,
+            speed: 2.4,
+            frameIndex: 0
+        };
+
+
+        function getFrameIndex(angle) {
+            if (angle >= -Math.PI / 4 && angle < Math.PI / 4) {
+                return 3; // Nordeste (NE)
+            } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
+                return 0; // Noroeste (NO)
+            } else if (angle >= -3 * Math.PI / 4 && angle < -Math.PI / 4) {
+                return 1; // Sudeste (SE)
+            } else {
+                return 2; // Sudoeste (SO)
+            }
+        }
+
+        function animateCardinalDirections(direction) {
+            if (animationInterval) clearInterval(animationInterval);
+
+            let frames = [];
+            if (direction === "N") frames = [1, 2]; // Norte alterna entre SE e SO
+            else if (direction === "S") frames = [0, 3]; // Sul alterna entre NO e NE
+            else if (direction === "L") frames = [3, 1]; // Leste alterna entre NE e SE
+            else if (direction === "O") frames = [0, 2]; // Oeste alterna entre NO e SO
+
+            let currentFrame = 0;
+            animationInterval = setInterval(() => {
+                ship.frameIndex = frames[currentFrame];
+                currentFrame = (currentFrame + 1) % 2;
+            }, 180);
+        }
+
+   socket.on("currentPlayers", (serverPlayers) => {
+        ships = serverPlayers;
+        console.log("Recebendo jogadores do servidor:", ships); // Depuração
+    });
+
+
+socket.on("newPlayer", (player) => {
+    ships[player.id] = player;
+});
+
+    socket.on("setInitialPosition", (player) => {
+        ship.x = player.x;
+        ship.y = player.y;
+        ship.targetX = player.x;
+        ship.targetY = player.y;
+        console.log("Posição inicial recebida do servidor:", ship.x, ship.y);
+    });
+
+
+    socket.on("updatePlayer", (player) => {
+        if (ships[player.id]) {
+            ships[player.id] = player;
+        }
+    });
+
+
+socket.on("removePlayer", (playerId) => {
+    delete ships[playerId];
+});
+
+
+        socket.on("newProjectile", (projectile) => {
+                if (!projectile || projectile.x === undefined || projectile.y === undefined) {
+                    console.error("❌ Projétil recebido com dados inválidos!", projectile);
+                    return;
+                }
+
+                // 🔥 Garante que o ângulo esteja presente para evitar projéteis parados
+                if (projectile.angle === undefined) {
+                    console.warn("⚠️ Projétil recebido sem ângulo! Definindo padrão.");
+                    projectile.angle = Math.atan2(projectile.velocityY, projectile.velocityX);
+                }
+
+                console.log(`🟡 Cliente recebeu projétil:`, projectile);
+                projectiles.push(projectile);
+            });
+
+
+
+     function drawShips() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let id in ships) {
+                let player = ships[id];
+                if (!player) continue;
+
+                ctx.save();
+                ctx.translate(player.x, player.y);
+
+                let spriteX = (player.frameIndex || 0) * SPRITE_WIDTH;
+
+                // 🔥 Desenha o navio
+                ctx.drawImage(
+                    shipImage,
+                    spriteX, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
+                    -SPRITE_WIDTH / 2, -SPRITE_HEIGHT / 2, SPRITE_WIDTH, SPRITE_HEIGHT
+                );
+
+                ctx.restore();
+
+                // 🔥 Barra de vida abaixo do navio
+                let healthPercentage = player.health / 100;
+                let barWidth = 80;
+                let barHeight = 3;
+
+                ctx.fillStyle = "red";
+                ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth, barHeight); // Fundo da barra
+
+                ctx.fillStyle = "green";
+                ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth * healthPercentage, barHeight); // Vida atual
+            }
+
+            drawProjectiles();
+            drawImpacts();
+            
+
+            requestAnimationFrame(drawShips);
+        }
+
+     function getClickedPlayer(event) {
+            let clickX = event.clientX;
+            let clickY = event.clientY;
+
+            for (let id in ships) {
+                if (id !== socket.id) { // Não pode atacar a si mesmo
+                    let player = ships[id];
+
+                    // Definir área de clique do navio
+                    let shipLeft = player.x - SPRITE_WIDTH / 2;
+                    let shipRight = player.x + SPRITE_WIDTH / 2;
+                    let shipTop = player.y - SPRITE_HEIGHT / 2;
+                    let shipBottom = player.y + SPRITE_HEIGHT / 2;
+
+                    if (clickX >= shipLeft && clickX <= shipRight && clickY >= shipTop && clickY <= shipBottom) {
+                        console.log(`🎯 Alvo selecionado: ${id}`);
+                        return id;
+                    }
+                }
+            }
+            return null;
+        }
+
+
+
+
+
+
+
+       function moveShip() {
+            let dx = ship.targetX - ship.x;
+            let dy = ship.targetY - ship.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 1) {
+                ship.x += (dx / distance) * ship.speed;
+                ship.y += (dy / distance) * ship.speed;
+                let angle = Math.atan2(dy, dx);
+
+                let newDirection = null;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    newDirection = dx > 0 ? "L" : "O";
+                } else {
+                    newDirection = dy > 0 ? "S" : "N";
+                }
+
+                if (newDirection !== lastDirection) {
+                    lastDirection = newDirection;
+                    if (newDirection !== "N" && newDirection !== "S" && newDirection !== "L" && newDirection !== "O") {
+                        clearInterval(animationInterval);
+                        ship.frameIndex = getFrameIndex(angle);
+                    } else {
+                        animateCardinalDirections(newDirection);
+                    }
+                }
+
+                // 🔥 Envia posição + animação para o servidor
+                socket.emit("move", {
+                    x: ship.x,
+                    y: ship.y,
+                    angle: angle,
+                    frameIndex: ship.frameIndex
+                });
+            }
+
+            requestAnimationFrame(moveShip);
+        }
+
+
+       document.addEventListener("click", (event) => {
+            let targetId = getClickedPlayer(event);
+
+            if (targetId) {
+                selectedTarget = targetId;
+                console.log(`🎯 Alvo selecionado: ${selectedTarget}`);
+            } else {
+                console.log("🧭 Movendo para:", event.clientX, event.clientY);
+                ship.targetX = event.clientX;
+                ship.targetY = event.clientY;
+            }
+        });
+
+
+        document.addEventListener("keydown", (event) => {
+                if (event.code === "Space" && selectedTarget && canShoot) {
+                    console.log(`🚀 Disparando contra ${selectedTarget}`);
+                    socket.emit("shoot", { targetId: selectedTarget });
+
+                    canShoot = false;
+                    setTimeout(() => { canShoot = true; }, 1000);
+                }
+            });
+
+
+
+                      socket.on("newProjectile", (projectile) => {
+                            console.log(`🟡 Projétil recebido no cliente:`, projectile);
+                            projectiles.push(projectile);
+                        });
+
+
+                        socket.on("updateProjectiles", (serverProjectiles) => {
+                            if (!serverProjectiles || !Array.isArray(serverProjectiles)) return; // 🔥 Protege contra erros
+                            projectiles = serverProjectiles;
+                        });
+
+
+                        // Função para desenhar um círculo luminoso no Canvas (efeito da bala)
+                        function drawLuminousBall(ctx, x, y) {
+                            let gradient = ctx.createRadialGradient(x, y, 2, x, y, 10);
+                            gradient.addColorStop(0, "rgba(255, 255, 0, 1)"); // Centro amarelo brilhante
+                            gradient.addColorStop(0.5, "rgba(255, 165, 0, 0.8)"); // Alaranjado ao redor
+                            gradient.addColorStop(1, "rgba(255, 0, 0, 0)"); // Vermelho transparente nas bordas
+
+                            ctx.fillStyle = gradient;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 10, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        function drawImpact(ctx, x, y, size, opacity) {
+                            ctx.fillStyle = `rgba(255, 140, 0, ${opacity})`;
+                            ctx.beginPath();
+                            ctx.arc(x, y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        function drawImpacts() {
+                            impacts.forEach((impact, index) => {
+                                drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                                impact.size += 1.5; // Aumenta gradativamente o tamanho da explosão
+                                impact.opacity -= 0.05; // Dissipa suavemente
+
+                                if (impact.opacity <= 0) {
+                                    impacts.splice(index, 1); // Remove a explosão da lista quando sumir
+                                }
+                            });
+
+                            requestAnimationFrame(drawImpacts);
+                        }
+
+
+                        socket.on("impact", (data) => {
+                            console.log(`💥 Impacto no ponto (${data.x}, ${data.y})`);
+                            impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
+                        });
+
+         function drawProjectiles() {
+                // 🔥 Percorre a lista de projéteis de trás para frente para evitar erro ao remover
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    let p = projectiles[i];
+
+                    if (!p) continue;
+
+                   
+                    if (!p.velocityX || !p.velocityY) {
+                        p.velocityX = Math.cos(p.angle) * p.speed;
+                        p.velocityY = Math.sin(p.angle) * p.speed;
+                    }
+
+                    
+                    p.x += p.velocityX;
+                    p.y += p.velocityY;
+
+                    // 🔥 Desenha o projétil brilhante
+                    drawLuminousBall(ctx, p.x, p.y);
+
+                    // 🔥 Verifica se o projétil atingiu o alvo
+                    let target = ships[p.targetId];
+                    if (target) {
+                        let dx = target.x - p.x;
+                        let dy = target.y - p.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 20) { // Se o projétil atingir o alvo
+                            console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
+                            impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Criar explosão
+
+                            projectiles.splice(i, 1); // 🔥 Agora removemos o projétil corretamente
+                        }
+                    }
+                }
+            }
+
+
+
+            // Desenha a explosão de impacto e a dissipa com o tempo
+            impacts.forEach((impact, index) => {
+                drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                impact.size += 1;
+                impact.opacity -= 0.1;
+                if (impact.opacity <= 0) {
+                    impacts.splice(index, 1);
+                }
+            });
+                
+
+
+
+      shipImage.onload = () => {
+            console.log("Imagem do navio carregada!");
+            drawShips();  
+             moveShip();
+             
+            
+        };
+
+
+    </script>
+</body>
+
+</html>
