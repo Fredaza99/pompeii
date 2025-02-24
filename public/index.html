@@ -337,10 +337,19 @@ socket.on("removePlayer", (playerId) => {
 
                 }
 
-                // 🔥 Remove os projéteis marcados após o loop para evitar erro de índice
-                toRemove.forEach(index => projectiles.splice(index, 1));
+                  let target = ships[p.targetId];
+                        if (target) {
+                            let dx = target.x - p.x;
+                            let dy = target.y - p.y;
+                            let distance = Math.sqrt(dx * dx + dy * dy);
 
-                requestAnimationFrame(drawProjectiles); // 🔥 Mantém o loop de renderização
+                            if (distance < 20) { // Se o projétil atingir o alvo
+                                console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
+                                impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Criar explosão
+                                projectiles.splice(index, 1); // Remove o projétil do array
+                            }
+                        }
+                    
             }
 
 
