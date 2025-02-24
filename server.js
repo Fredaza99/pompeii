@@ -24,7 +24,6 @@ let players = {};
 let projectiles = [];
 
 io.on("connection", (socket) => {
-    console.log(`Novo jogador conectado: ${socket.id}`);
 
     players[socket.id] = {
         x: Math.random() * 800,
@@ -68,7 +67,6 @@ io.on("connection", (socket) => {
 
         let now = Date.now();
         if (now - (player.lastShot || 0) < FIRE_RATE) {
-            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
             return;
         }
 
@@ -78,24 +76,20 @@ io.on("connection", (socket) => {
         let distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > ATTACK_RANGE) { // 🔥 Se o inimigo estiver muito longe, cancela o ataque
-            console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
             return;
         }
 
         player.lastShot = now;
 
         let angle = Math.atan2(dy, dx);
-        console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
 
         // 🔥 Aplica dano único ao alvo
         target.health -= DAMAGE;
-        console.log(`🩸 Vida do jogador ${data.targetId} agora é ${target.health}`);
 
         io.emit("updateHealth", { target: data.targetId, health: target.health });
 
         // 🔥 Se o alvo morreu, ele é respawnado
         if (target.health <= 0) {
-            console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
             target.health = 100;
             target.x = Math.random() * 800;
             target.y = Math.random() * 600;
@@ -105,7 +99,7 @@ io.on("connection", (socket) => {
         // 🔥 Disparo de múltiplos projéteis
         let initialX = player.x;
         let initialY = player.y;
-        let speed = 5;
+        let speed = 2;
 
         let velocityX = Math.cos(angle) * speed;
         let velocityY = Math.sin(angle) * speed;
@@ -144,7 +138,6 @@ io.on("connection", (socket) => {
                     let distance = Math.sqrt(dx * dx + dy * dy);
 
                     if (distance < 20) { // Se o projétil atingir o alvo
-                        console.log(`💥 Projétil atingiu ${p.targetId}! Criando impacto.`);
                         io.emit("impact", { x: p.x, y: p.y });
                         projectiles.splice(index, 1);
                     }
@@ -192,6 +185,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
 });
 
