@@ -304,20 +304,21 @@ socket.on("removePlayer", (playerId) => {
                 });
 
           function drawProjectiles() {
-                let toRemove = []; // Lista auxiliar para armazenar projéteis a serem removidos
+                let toRemove = []; // Lista de projéteis que serão removidos
 
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
 
                     if (!p) continue;
 
-                    // 🔥 Define a velocidade apenas uma vez, se ainda não estiver definida
+                    // 🔥 Garante que a velocidade só seja definida uma vez (no servidor)
                     if (p.velocityX === undefined || p.velocityY === undefined) {
-                        p.velocityX = Math.cos(p.angle) * p.speed;
-                        p.velocityY = Math.sin(p.angle) * p.speed;
+                        console.warn(`⚠️ Projétil sem velocidade definida! Definindo padrão.`);
+                        p.velocityX = Math.cos(p.angle) * 5; // Velocidade fixa
+                        p.velocityY = Math.sin(p.angle) * 5;
                     }
 
-                    // 🔥 Mantém a velocidade fixa sem recalcular
+                    // 🔥 Movimenta o projétil APENAS usando a velocidade definida
                     p.x += p.velocityX;
                     p.y += p.velocityY;
 
@@ -342,6 +343,7 @@ socket.on("removePlayer", (playerId) => {
                 // 🔥 Remove os projéteis fora do loop para evitar problemas de reindexação
                 toRemove.forEach(index => projectiles.splice(index, 1));
             }
+
 
 
 
