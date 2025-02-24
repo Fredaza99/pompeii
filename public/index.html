@@ -328,49 +328,43 @@ socket.on("removePlayer", (playerId) => {
                 });
 
          function drawProjectiles() {
-
+                let toRemove = []; // Lista de projéteis que serão removidos
 
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
                     if (!p) continue;
 
-
-                    if (p.angle !== undefined) {
-                        p.x += Math.cos(p.angle) * 5;
-                        p.y += Math.sin(p.angle) * 5;
-                    } else {
-                        console.warn(`⚠️ Projétil sem ângulo!`, p);
-                    }
-
                     p.x += p.velocityX;
                     p.y += p.velocityY;
-                    console.log(`📍 Projétil ${p.id} movendo-se para X: ${p.x}, Y: ${p.y}`);
-
 
                     drawLuminousBall(ctx, p.x, p.y);
 
+                    // 🔥 Verifica se o projétil atingiu o alvo
                     let target = ships[p.targetId];
                     if (target) {
                         let dx = target.x - p.x;
                         let dy = target.y - p.y;
                         let distance = Math.sqrt(dx * dx + dy * dy);
 
-                        if (distance < 10) {
+                        if (distance < 20) { // 🔥 Se o projétil atingir o alvo
                             console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 });
-                            toRemove.push(i);
+                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 }); // Criar explosão
+
+                            toRemove.push(i); // 🔥 Marca para remover depois
                         }
                     }
 
-                    if (Date.now() - p.createdAt > 2000) { 
-
-                        
+                    // 🔥 Remove projéteis antigos após 2 segundos
+                    if (Date.now() - p.createdAt > 2000) {
+                        console.log(`🕒 Projétil ${p.id} expirou e foi removido.`);
+                        toRemove.push(i);
                     }
                 }
 
+                // 🔥 Remove os projéteis marcados após o loop para evitar erro de índice
                 toRemove.forEach(index => projectiles.splice(index, 1));
 
-                requestAnimationFrame(drawProjectiles);
+                requestAnimationFrame(drawProjectiles); // 🔥 Mantém o loop de renderização
             }
 
 
