@@ -150,6 +150,8 @@ socket.on("removePlayer", (playerId) => {
                 ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth * healthPercentage, barHeight); // Vida atual
             }
 
+            drawProjectiles();
+
             requestAnimationFrame(drawShips);
         }
 
@@ -275,45 +277,41 @@ socket.on("removePlayer", (playerId) => {
 
             // Função principal para desenhar projéteis e impactos
             function drawProjectiles() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    // 🔥 Não apagamos o canvas aqui! (Removemos `ctx.clearRect()`)
 
-                // Desenha os projéteis
-                projectiles.forEach((p, index) => {
-                    drawLuminousBall(ctx, p.x, p.y);
+                    // Desenha os projéteis
+                    projectiles.forEach((p, index) => {
+                        drawLuminousBall(ctx, p.x, p.y);
 
-                    let target = ships[p.targetId];
-                    if (target) {
-                        let dx = target.x - p.x;
-                        let dy = target.y - p.y;
-                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        let target = ships[p.targetId];
+                        if (target) {
+                            let dx = target.x - p.x;
+                            let dy = target.y - p.y;
+                            let distance = Math.sqrt(dx * dx + dy * dy);
 
-                        if (distance < 20) { // 🔥 Se o tiro atingir o alvo, remove e cria impacto
-                            impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Cria explosão
-                            projectiles.splice(index, 1);
+                            if (distance < 20) { // 🔥 Se o tiro atingir o alvo, remove e cria impacto
+                                impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Cria explosão
+                                projectiles.splice(index, 1);
+                            }
                         }
-                    }
-                });
+                    });
 
-                // Desenha a explosão de impacto e a dissipa com o tempo
-                impacts.forEach((impact, index) => {
-                    drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
-                    impact.size += 1;
-                    impact.opacity -= 0.1;
-                    if (impact.opacity <= 0) {
-                        impacts.splice(index, 1);
-                    }
-                });
+                    // Desenha a explosão de impacto e a dissipa com o tempo
+                    impacts.forEach((impact, index) => {
+                        drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                        impact.size += 1;
+                        impact.opacity -= 0.1;
+                        if (impact.opacity <= 0) {
+                            impacts.splice(index, 1);
+                        }
+                    });
+                }
 
-                requestAnimationFrame(drawProjectiles);
-            }
-
-            drawProjectiles(); // Inicia a renderização dos projéteis e impactos
 
 
       shipImage.onload = () => {
             console.log("Imagem do navio carregada!");
-            drawShips();  // Agora desenha todos os jogadores
-            moveShip();
+            drawShips();  
             drawProjectiles();
         };
 
