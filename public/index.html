@@ -152,6 +152,7 @@ socket.on("removePlayer", (playerId) => {
 
             drawProjectiles();
             drawImpacts();
+            
 
             requestAnimationFrame(drawShips);
         }
@@ -377,6 +378,7 @@ socket.on("removePlayer", (playerId) => {
             console.log("Imagem do navio carregada!");
             drawShips();  
              moveShip();
+             drawProjectiles();
             
         };
 
