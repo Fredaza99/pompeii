@@ -6,7 +6,7 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-const ATTACK_RANGE = 200; // Distância máxima para atacar
+const ATTACK_RANGE = 400; // Distância máxima para atacar
 const FIRE_RATE = 1000; // Tempo de recarga (1 segundo)
 const DAMAGE = 10; // Dano por tiro
 
@@ -67,12 +67,19 @@ io.on("connection", (socket) => {
         let now = Date.now();
         if (now - (player.lastShot || 0) < FIRE_RATE) return;
 
-        player.lastShot = now;
-
+        // 🔥 Calcula a distância entre o jogador e o inimigo
         let dx = target.x - player.x;
         let dy = target.y - player.y;
-        let angle = Math.atan2(dy, dx);
+        let distance = Math.sqrt(dx * dx + dy * dy);
 
+        if (distance > ATTACK_RANGE) { // 🔥 Se o inimigo estiver muito longe, cancela o ataque
+            console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
+            return;
+        }
+
+        player.lastShot = now;
+
+        let angle = Math.atan2(dy, dx);
         console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
 
         // 🔥 Aplica dano único ao alvo
@@ -88,10 +95,9 @@ io.on("connection", (socket) => {
             target.y = Math.random() * 600;
         }
 
-        
         let initialX = player.x;
         let initialY = player.y;
-        let speed = 5; 
+        let speed = 5;
 
         let velocityX = Math.cos(angle) * speed;
         let velocityY = Math.sin(angle) * speed;
