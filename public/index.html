@@ -40,11 +40,12 @@
         let lastDirection = null;
         let canShoot = true;
 
-        let ships = {}; // Armazena todos os jogadores
-        let projectiles = []; // Lista de projéteis ativos
+        let ships = {}; 
+        let projectiles = [];
+        let impacts = [];
 
        let ship = {
-            x: 300, // Teste com valores fixos
+            x: 300, 
             y: 300,
             targetX: 300,
             targetY: 300,
@@ -242,20 +243,72 @@ socket.on("removePlayer", (playerId) => {
             }
         });
 
-        function drawProjectiles() {
-            ctx.fillStyle = "black";
-            projectiles.forEach((projectile, index) => {
-                projectile.x += Math.cos(projectile.angle) * 5;
-                projectile.y += Math.sin(projectile.angle) * 5;
-                ctx.beginPath();
-                ctx.arc(projectile.x, projectile.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-                if (projectile.x < 0 || projectile.x > canvas.width || projectile.y < 0 || projectile.y > canvas.height) {
-                    projectiles.splice(index, 1);
-                }
+
+            socket.on("newProjectile", (projectile) => {
+                projectiles.push(projectile);
             });
-            requestAnimationFrame(drawProjectiles);
-        }
+
+            socket.on("updateProjectiles", (serverProjectiles) => {
+                projectiles = serverProjectiles;
+            });
+
+            // Função para desenhar um círculo luminoso no Canvas (efeito da bala)
+            function drawLuminousBall(ctx, x, y) {
+                let gradient = ctx.createRadialGradient(x, y, 2, x, y, 10);
+                gradient.addColorStop(0, "rgba(255, 255, 0, 1)"); // Centro amarelo brilhante
+                gradient.addColorStop(0.5, "rgba(255, 165, 0, 0.8)"); // Alaranjado ao redor
+                gradient.addColorStop(1, "rgba(255, 0, 0, 0)"); // Vermelho transparente nas bordas
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Função para desenhar o impacto (explosão pequena)
+            function drawImpact(ctx, x, y, size, opacity) {
+                ctx.fillStyle = `rgba(255, 140, 0, ${opacity})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Função principal para desenhar projéteis e impactos
+            function drawProjectiles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Desenha os projéteis
+                projectiles.forEach((p, index) => {
+                    drawLuminousBall(ctx, p.x, p.y);
+
+                    let target = ships[p.targetId];
+                    if (target) {
+                        let dx = target.x - p.x;
+                        let dy = target.y - p.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 20) { // 🔥 Se o tiro atingir o alvo, remove e cria impacto
+                            impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Cria explosão
+                            projectiles.splice(index, 1);
+                        }
+                    }
+                });
+
+                // Desenha a explosão de impacto e a dissipa com o tempo
+                impacts.forEach((impact, index) => {
+                    drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                    impact.size += 1;
+                    impact.opacity -= 0.1;
+                    if (impact.opacity <= 0) {
+                        impacts.splice(index, 1);
+                    }
+                });
+
+                requestAnimationFrame(drawProjectiles);
+            }
+
+            drawProjectiles(); // Inicia a renderização dos projéteis e impactos
+
 
       shipImage.onload = () => {
             console.log("Imagem do navio carregada!");
