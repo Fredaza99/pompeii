@@ -276,21 +276,19 @@ socket.on("removePlayer", (playerId) => {
                 ctx.fill();
             }
 
-            // Desenha a explosão de impacto e a dissipa com o tempo
-                function drawImpacts() {
+            function drawImpacts() {
                     impacts.forEach((impact, index) => {
                         drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
                         impact.size += 1;
                         impact.opacity -= 0.1;
                         if (impact.opacity <= 0) {
-                            impacts.splice(index, 1);
+                            impacts.splice(index, 1); // Remove a explosão após ela sumir
                         }
                     });
 
                     requestAnimationFrame(drawImpacts);
                 }
 
-                drawImpacts(); // Inicia o loop de renderização dos impactos
 
             socket.on("impact", (data) => {
                     console.log(`💥 Impacto no ponto (${data.x}, ${data.y})`);
