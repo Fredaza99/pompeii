@@ -114,8 +114,18 @@ socket.on("removePlayer", (playerId) => {
 
 
         socket.on("newProjectile", (projectile) => {
-            projectiles.push(projectile);
-        });
+            console.log(`🟡 Novo projétil recebido no cliente: X:${projectile.x}, Y:${projectile.y}`);
+
+
+                // 🔥 Verifica se o projétil possui posição válida
+                if (!projectile.x || !projectile.y) {
+                    console.error("❌ Projétil recebido com posição inválida!", projectile);
+                    return;
+                }
+
+                projectiles.push(projectile);
+            });
+
 
      function drawShips() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -308,12 +318,16 @@ socket.on("removePlayer", (playerId) => {
                 });
 
           function drawProjectiles() {
+                console.log(`🔵 Renderizando ${projectiles.length} projéteis.`);
+
                 let toRemove = []; // Lista de projéteis que serão removidos
 
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
 
                     if (!p) continue;
+                    console.log(`🎯 Desenhando projétil ${i} em X: ${p.x}, Y: ${p.y}`);
+
 
                     // 🔥 Garante que a velocidade só seja definida uma vez (no servidor)
                     if (p.velocityX === undefined || p.velocityY === undefined) {
