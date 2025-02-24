@@ -304,24 +304,22 @@ socket.on("removePlayer", (playerId) => {
                     ctx.fill();
                 }
 
-            function drawImpacts() {
-                    let toRemove = []; // Lista auxiliar para remover explosões antigas
 
-                    impacts.forEach((impact, index) => {
-                        drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
-                        impact.size += 1.5; // Crescimento do impacto
-                        impact.opacity -= 0.05; // Dissipação do impacto
+           function drawImpacts() {
+                impacts.forEach((impact, index) => {
+                    drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                    impact.size += 1.5; // Aumenta gradativamente o tamanho da explosão
+                    impact.opacity -= 0.05; // Dissipa suavemente
 
-                        if (impact.opacity <= 0) {
-                            toRemove.push(index); // 🔥 Marca para remover depois
-                        }
-                    });
+                    if (impact.opacity <= 0) {
+                        impacts.splice(index, 1); // Remove a explosão da lista quando sumir
+                    }
+                });
 
-                    // 🔥 Remove impactos fora do loop
-                    toRemove.forEach(index => impacts.splice(index, 1));
+                requestAnimationFrame(drawImpacts);
+            }
 
-                    requestAnimationFrame(drawImpacts);
-                }
+
 
 
             socket.on("impact", (data) => {
@@ -331,7 +329,6 @@ socket.on("removePlayer", (playerId) => {
 
          function drawProjectiles() {
 
-                let toRemove = [];
 
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
@@ -365,9 +362,9 @@ socket.on("removePlayer", (playerId) => {
                         }
                     }
 
-                    if (Date.now() - p.createdAt > 5000) { 
+                    if (Date.now() - p.createdAt > 2000) { 
 
-                        toRemove.push(i);
+                        
                     }
                 }
 
