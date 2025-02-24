@@ -97,7 +97,6 @@ socket.on("newPlayer", (player) => {
         ship.y = player.y;
         ship.targetX = player.x;
         ship.targetY = player.y;
-        console.log("Posição inicial recebida do servidor:", ship.x, ship.y);
     });
 
 
@@ -125,7 +124,6 @@ socket.on("removePlayer", (playerId) => {
                     projectile.angle = Math.atan2(projectile.velocityY, projectile.velocityX);
                 }
 
-                console.log(`🟡 Cliente recebeu projétil:`, projectile);
                 projectiles.push(projectile);
             });
 
@@ -186,7 +184,6 @@ socket.on("removePlayer", (playerId) => {
                     let shipBottom = player.y + SPRITE_HEIGHT / 2;
 
                     if (clickX >= shipLeft && clickX <= shipRight && clickY >= shipTop && clickY <= shipBottom) {
-                        console.log(`🎯 Alvo selecionado: ${id}`);
                         return id;
                     }
                 }
@@ -247,7 +244,6 @@ socket.on("removePlayer", (playerId) => {
                 selectedTarget = targetId;
                 console.log(`🎯 Alvo selecionado: ${selectedTarget}`);
             } else {
-                console.log("🧭 Movendo para:", event.clientX, event.clientY);
                 ship.targetX = event.clientX;
                 ship.targetY = event.clientY;
             }
@@ -256,7 +252,6 @@ socket.on("removePlayer", (playerId) => {
 
         document.addEventListener("keydown", (event) => {
                 if (event.code === "Space" && selectedTarget && canShoot) {
-                    console.log(`🚀 Disparando contra ${selectedTarget}`);
                     socket.emit("shoot", { targetId: selectedTarget });
 
                     canShoot = false;
@@ -267,7 +262,6 @@ socket.on("removePlayer", (playerId) => {
 
 
                       socket.on("newProjectile", (projectile) => {
-                            console.log(`🟡 Projétil recebido no cliente:`, projectile);
                             projectiles.push(projectile);
                         });
 
@@ -314,17 +308,14 @@ socket.on("removePlayer", (playerId) => {
 
 
                         socket.on("impact", (data) => {
-                            console.log(`💥 Impacto no ponto (${data.x}, ${data.y})`);
                             impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
                         });
 
         function drawProjectiles() {
                 if (!projectiles || projectiles.length === 0) {
-                    console.warn("⚠️ Nenhum projétil para desenhar.");
                     return;
                 }
 
-                console.log(`🔵 Renderizando ${projectiles.length} projéteis.`);
 
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
@@ -353,7 +344,6 @@ socket.on("removePlayer", (playerId) => {
                         let distance = Math.sqrt(dx * dx + dy * dy);
 
                         if (distance < 20) {
-                            console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
                             impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 });
 
                             projectiles.splice(i, 1);
@@ -381,7 +371,6 @@ socket.on("removePlayer", (playerId) => {
 
 
       shipImage.onload = () => {
-            console.log("Imagem do navio carregada!");
             drawShips();  
              moveShip();
              
