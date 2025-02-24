@@ -240,7 +240,7 @@ socket.on("removePlayer", (playerId) => {
 
         document.addEventListener("keydown", (event) => {
                 if (event.code === "Space" && selectedTarget && canShoot) {
-                    console.log(`🚀 Atacando ${selectedTarget}`);
+                    console.log(`🚀 Disparando contra ${selectedTarget}`);
                     socket.emit("shoot", { targetId: selectedTarget });
 
                     canShoot = false;
@@ -273,21 +273,36 @@ socket.on("removePlayer", (playerId) => {
                 ctx.fill();
             }
 
-            // Função para desenhar o impacto (explosão pequena)
-            function drawImpact(ctx, x, y, size, opacity) {
-                ctx.fillStyle = `rgba(255, 140, 0, ${opacity})`;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            // Desenha a explosão de impacto e a dissipa com o tempo
+                function drawImpacts() {
+                    impacts.forEach((impact, index) => {
+                        drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                        impact.size += 1;
+                        impact.opacity -= 0.1;
+                        if (impact.opacity <= 0) {
+                            impacts.splice(index, 1);
+                        }
+                    });
+
+                    requestAnimationFrame(drawImpacts);
+                }
+
+                drawImpacts(); // Inicia o loop de renderização dos impactos
+
+            socket.on("impact", (data) => {
+                    console.log(`💥 Impacto no ponto (${data.x}, ${data.y})`);
+                    impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
+                });
 
             // Função principal para desenhar projéteis e impactos
             function drawProjectiles() {
                     // 🔥 Não apagamos o canvas aqui! (Removemos `ctx.clearRect()`)
 
                     // Desenha os projéteis
-                    projectiles.forEach((p, index) => {
-                        drawLuminousBall(ctx, p.x, p.y);
+                     projectiles.forEach((p, index) => {
+                    p.x += Math.cos(p.angle) * p.speed;
+                    p.y += Math.sin(p.angle) * p.speed;
+                    drawLuminousBall(ctx, p.x, p.y);
 
                         let target = ships[p.targetId];
                         if (target) {
@@ -295,8 +310,8 @@ socket.on("removePlayer", (playerId) => {
                             let dy = target.y - p.y;
                             let distance = Math.sqrt(dx * dx + dy * dy);
 
-                            if (distance < 20) { // 🔥 Se o tiro atingir o alvo, remove e cria impacto
-                                impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Cria explosão
+                            if (distance < 20) { 
+                                impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 });
                                 projectiles.splice(index, 1);
                             }
                         }
