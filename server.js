@@ -58,108 +58,107 @@ io.on("connection", (socket) => {
 
 
 
-    socket.on("shoot", (data) => {
-        let player = players[socket.id];
-        let target = players[data.targetId];
+    // 🔥 Função para verificar se o alvo está dentro do alcance
+function isTargetInRange(attacker, target) {
+    let dx = target.x - attacker.x;
+    let dy = target.y - attacker.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    return distance <= ATTACK_RANGE; // 🔥 Retorna true se estiver dentro do alcance
+}
 
-        if (!player || !target) return;
+socket.on("shoot", (data) => {
+    let player = players[socket.id];
+    let target = players[data.targetId];
 
-        let now = Date.now();
-        if (now - (player.lastShot || 0) < FIRE_RATE) {
-            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
-            return;
+    if (!player || !target) return;
+
+    let now = Date.now();
+    if (now - (player.lastShot || 0) < FIRE_RATE) {
+        console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown.`);
+        return;
+    }
+
+    if (!isTargetInRange(player, target)) {
+        console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
+        return;
+    }
+
+    player.lastShot = now;
+    console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
+
+    // 🔥 Aplica dano único ao alvo
+    target.health -= DAMAGE;
+    console.log(`🩸 Vida do jogador ${data.targetId} agora é ${target.health}`);
+    io.emit("updateHealth", { target: data.targetId, health: target.health });
+
+    // 🔥 Se o alvo morreu, ele é respawnado
+    if (target.health <= 0) {
+        console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
+        target.health = 100;
+        target.x = Math.random() * 800;
+        target.y = Math.random() * 600;
+        io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
+    }
+
+    // 🔥 Disparo de múltiplos projéteis com velocidade fixa
+    let dx = target.x - player.x;
+    let dy = target.y - player.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    let speed = 5;
+
+    let steps = distance / speed;
+    let stepX = dx / steps;
+    let stepY = dy / steps;
+
+    for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+            let projectile = {
+                id: socket.id,
+                x: player.x,
+                y: player.y,
+                stepX: stepX, // 🔥 Mantemos os passos de movimento fixos
+                stepY: stepY,
+                createdAt: Date.now(),
+                targetId: data.targetId
+            };
+            projectiles.push(projectile);
+            io.emit("newProjectile", projectile);
+        }, i * 50);
+    }
+
+    console.log(`✅ ${socket.id} finalizou o disparo contra ${data.targetId}`);
+
+
+// 🔥 Atualiza a posição dos projéteis no servidor
+setInterval(() => {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        let p = projectiles[i];
+        if (!p) continue;
+
+        p.x += p.stepX;
+        p.y += p.stepY;
+
+        let target = players[p.targetId];
+        if (target) {
+            let dx = target.x - p.x;
+            let dy = target.y - p.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 10) { // 🔥 Se atingir o alvo, remove o projétil
+                console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
+                io.emit("impact", { x: p.x, y: p.y }); // Enviar impacto para o cliente
+                projectiles.splice(i, 1);
+            }
         }
 
-        // 🔥 Calcula a distância entre o jogador e o inimigo
-        let dx = target.x - player.x;
-        let dy = target.y - player.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance > ATTACK_RANGE) { // 🔥 Se o inimigo estiver muito longe, cancela o ataque
-            console.log(`🚫 ${socket.id} tentou atacar ${data.targetId}, mas estava fora do alcance!`);
-            return;
+        // 🔥 Remove projéteis antigos após 2 segundos
+        if (Date.now() - p.createdAt > 2000) {
+            projectiles.splice(i, 1);
         }
+    }
 
-        player.lastShot = now;
-
-        let angle = Math.atan2(dy, dx);
-        console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
-
-        // 🔥 Aplica dano único ao alvo
-        target.health -= DAMAGE;
-        console.log(`🩸 Vida do jogador ${data.targetId} agora é ${target.health}`);
-
-        io.emit("updateHealth", { target: data.targetId, health: target.health });
-
-        // 🔥 Se o alvo morreu, ele é respawnado
-        if (target.health <= 0) {
-            console.log(`💀 ${data.targetId} foi destruído! Respawnando...`);
-            target.health = 100;
-            target.x = Math.random() * 800;
-            target.y = Math.random() * 600;
-            io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
-        }
-
-        // 🔥 Disparo de múltiplos projéteis
-        let initialX = player.x;
-        let initialY = player.y;
-        let speed = 5;
-
-        let velocityX = Math.cos(angle) * speed;
-        let velocityY = Math.sin(angle) * speed;
-
-        for (let i = 0; i < 8; i++) {
-            setTimeout(() => {
-                let projectile = {
-                    id: socket.id,
-                    x: initialX,
-                    y: initialY,
-                    angle: angle,
-                    velocityX: velocityX,
-                    velocityY: velocityY,
-                    speed: speed,
-                    createdAt: Date.now(),
-                    targetId: data.targetId
-                };
-                projectiles.push(projectile);
-                io.emit("newProjectile", projectile);
-            }, i * 50);
-        }
-
-        console.log(`✅ ${socket.id} finalizou o disparo contra ${data.targetId}`);
-    
-
-
-        setInterval(() => {
-            projectiles.forEach((p, index) => {
-                if (!p) return;
-
-                // 🔥 Agora, o projétil mantém a velocidade original, sem recalcular a cada frame
-                p.x += p.velocityX;
-                p.y += p.velocityY;
-
-                // 🔥 Verifica colisão com o alvo
-                let target = players[p.targetId];
-                if (target) {
-                    let dx = target.x - p.x;
-                    let dy = target.y - p.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 20) { // Se o projétil atingir o alvo
-                        console.log(`💥 Projétil atingiu ${p.targetId}! Criando impacto.`);
-                        io.emit("impact", { x: p.x, y: p.y });
-                        projectiles.splice(index, 1);
-                    }
-                }
-
-                // 🔥 Remove projéteis após 2 segundos para evitar acúmulo
-                if (Date.now() - p.createdAt > 2000) {
-                    projectiles.splice(index, 1);
-                }
-            });
-
-            io.emit("updateProjectiles", projectiles);
-        }, 50);
+    io.emit("updateProjectiles", projectiles);
+}, 50);
 
 
 
