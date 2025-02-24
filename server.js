@@ -112,6 +112,35 @@ io.on("connection", (socket) => {
             }, i * 50);
         }
 
+        setInterval(() => {
+            projectiles.forEach((p, index) => {
+                p.x += Math.cos(p.angle) * p.speed;
+                p.y += Math.sin(p.angle) * p.speed;
+
+                // 🔥 Verifica colisão com o alvo
+                let target = players[p.targetId];
+                if (target) {
+                    let dx = target.x - p.x;
+                    let dy = target.y - p.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 20) { // Se o projétil atingir o alvo
+                        console.log(`💥 Projétil atingiu ${p.targetId}! Criando impacto.`);
+                        io.emit("impact", { x: p.x, y: p.y }); // Dispara o evento de impacto
+                        projectiles.splice(index, 1); // Remove o projétil
+                    }
+                }
+
+                // Remove projéteis após 2 segundos (para não ficarem infinitos)
+                if (Date.now() - p.createdAt > 2000) {
+                    projectiles.splice(index, 1);
+                }
+            });
+
+            io.emit("updateProjectiles", projectiles);
+        }, 50);
+
+
         // 🔥 Atualiza o alvo para todos os clientes
         io.emit("updatePlayer", { id: data.targetId, ...target });
         console.log(`📡 Enviando updatePlayer para ${data.targetId}:`, target);
