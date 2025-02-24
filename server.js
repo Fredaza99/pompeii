@@ -62,16 +62,10 @@ io.on("connection", (socket) => {
         let player = players[socket.id];
         let target = players[data.targetId];
 
-        if (!player || !target) {
-            console.log(`❌ Erro: Atacante (${socket.id}) ou alvo (${data.targetId}) não encontrado!`);
-            return;
-        }
+        if (!player || !target) return;
 
         let now = Date.now();
-        if (now - (player.lastShot || 0) < FIRE_RATE) {
-            console.log(`⏳ ${socket.id} tentou atirar, mas ainda está no cooldown!`);
-            return;
-        }
+        if (now - (player.lastShot || 0) < FIRE_RATE) return;
 
         player.lastShot = now;
 
@@ -79,7 +73,7 @@ io.on("connection", (socket) => {
         let dy = target.y - player.y;
         let angle = Math.atan2(dy, dx);
 
-        console.log(`💥 ${socket.id} disparou contra ${data.targetId}, causando dano único!`);
+        console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
 
         // 🔥 Aplica dano único ao alvo
         target.health -= DAMAGE;
@@ -94,15 +88,18 @@ io.on("connection", (socket) => {
             target.y = Math.random() * 600;
         }
 
-        // Criar efeito visual de 8 projéteis, mas sem dano repetido
+        
+        let initialX = player.x;
+        let initialY = player.y;
+
         for (let i = 0; i < 8; i++) {
             setTimeout(() => {
                 let projectile = {
                     id: socket.id,
-                    x: player.x,
-                    y: player.y,
+                    x: initialX, // 🔥 Agora o projétil nasce na posição original do barco
+                    y: initialY,
                     angle: angle,
-                    speed: 5,
+                    speed: 7,
                     createdAt: Date.now(),
                     targetId: data.targetId // Associa ao alvo para animação de impacto
                 };
