@@ -110,6 +110,9 @@ function isTargetInRange(attacker, target) {
         let angle = Math.atan2(dy, dx);
         let velocityX = Math.cos(angle) * 5;
         let velocityY = Math.sin(angle) * 5;
+        let offset = 20; // Distância inicial do projétil em relação ao atacante
+        let startX = player.x + Math.cos(angle) * offset;
+        let startY = player.y + Math.sin(angle) * offset;
 
         // 🔥 Disparo de múltiplos projéteis
         for (let i = 0; i < 8; i++) {
@@ -117,8 +120,8 @@ function isTargetInRange(attacker, target) {
 
                 let projectile = {
                     id: socket.id,
-                    x: player.x,
-                    y: player.y,
+                    x: startX,  // 🔥 Agora nasce um pouco mais longe
+                    y: startY,
                     velocityX: velocityX,
                     velocityY: velocityY,
                     angle: angle, // 🔥 Adicionando ângulo para o cliente
