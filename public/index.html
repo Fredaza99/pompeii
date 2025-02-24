@@ -347,6 +347,8 @@ socket.on("removePlayer", (playerId) => {
 
                     p.x += p.velocityX;
                     p.y += p.velocityY;
+                    console.log(`📍 Projétil ${p.id} movendo-se para X: ${p.x}, Y: ${p.y}`);
+
 
                     drawLuminousBall(ctx, p.x, p.y);
 
