@@ -358,7 +358,7 @@ socket.on("removePlayer", (playerId) => {
                         let dy = target.y - p.y;
                         let distance = Math.sqrt(dx * dx + dy * dy);
 
-                        if (distance < 20) {
+                        if (distance < 10) {
                             console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
                             impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 });
                             toRemove.push(i);
