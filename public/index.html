@@ -20,11 +20,78 @@
 </head>
 
 <body>
+
+<div id="nameContainer" style="
+    position: absolute;
+    width: 50%;
+    max-width: 400px;
+    height: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
+">
+    <!-- Ícone da caveira -->
+    <img src="images/coin.png" alt="Caveira Pirata" style="
+        width: 80px;
+        height: 80px;
+        margin-bottom: 10px;
+    ">
+
+    <h2 style="margin-bottom: 15px; font-family: 'Pirata One', cursive; font-size: 26px;">
+        Choose Your Nick
+    </h2>
+
+    <input type="text" id="playerNameInput" placeholder="Type your nick here" maxlength="12" style="
+        padding: 12px;
+        font-size: 16px;
+        margin-bottom: 10px;
+        width: 90%;
+        text-align: center;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        outline: none;
+        box-shadow: inset 0px 0px 5px rgba(255, 255, 255, 0.2);
+    ">
+
+    <button onclick="setPlayerName()" style="
+        padding: 12px 24px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        transition: 0.3s;
+    " onmouseover="this.style.background='rgba(255, 255, 255, 0.4)'"
+        onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+        Play
+    </button>
+</div>
+
+
     <canvas id="gameCanvas"></canvas>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 
     <script>
     const socket = io("https://pompeii.up.railway.app");
+
 
 
         const canvas = document.getElementById("gameCanvas");
@@ -154,22 +221,30 @@ socket.on("removePlayer", (playerId) => {
 
                 ctx.restore();
 
-                // 🔥 Barra de vida abaixo do navio
-                let healthPercentage = player.health / 100;
-                let barWidth = 80;
+                    let healthPercentage = player.health / 100;
+                let barWidth = 100;
                 let barHeight = 3;
+                let barY = player.y + 60; // Ajuste de posição vertical da barra
                 
-                let iconSize = 14; // Ajuste o tamanho conforme necessário
+                let iconSize = 22; // Ajuste o tamanho conforme necessário
                 let iconX = player.x - (barWidth / 2) - iconSize - 5; // Posiciona à esquerda da barra
                 let iconY = barY - (iconSize / 4); 
 
                 ctx.drawImage(healthIcon, iconX, iconY, iconSize, iconSize); // Desenha o ícone
 
                 ctx.fillStyle = "red";
-                ctx.fillRect(player.x - barWidth / 2, player.y + 40, barWidth, barHeight); // Fundo da barra
+                ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth, barHeight); // Fundo da barra
 
                 ctx.fillStyle = "green";
-                ctx.fillRect(player.x - barWidth / 2, player.y + 40, barWidth * healthPercentage, barHeight); // Vida atual
+                ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth * healthPercentage, barHeight); // Vida atual
+            
+                        // 🔥 Exibir nome do jogador acima da barra de vida
+                if (player.name) {
+                    ctx.fillStyle = "white";
+                    ctx.font = "14px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText(player.name, player.x, barY - -2); // Nome acima da barra de vida
+                }
             }
 
             drawProjectiles();
@@ -178,6 +253,29 @@ socket.on("removePlayer", (playerId) => {
 
             requestAnimationFrame(drawShips);
         }
+
+        function setPlayerName() {
+                const input = document.getElementById("playerNameInput");
+                const playerName = input.value.trim();
+
+                if (playerName === "") {
+                    alert("Por favor, digite um nome!");
+                    return;
+                }
+
+                socket.emit("setName", playerName); // 🔥 Envia o nome para o servidor
+
+                document.getElementById("nameContainer").style.display = "none"; // Esconde a tela de nome
+            }
+
+            socket.on("setName", (name) => {
+                    if (players[socket.id]) {
+                        players[socket.id].name = name;
+                        io.emit("updatePlayer", { id: socket.id, ...players[socket.id] }); // 🔥 Envia atualização do nome para todos
+                    }
+                });
+
+
 
      function getClickedPlayer(event) {
             let clickX = event.clientX;
