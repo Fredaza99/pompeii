@@ -263,9 +263,17 @@ socket.on("removePlayer", (playerId) => {
 
 
             socket.on("newProjectile", (projectile) => {
-                    console.log(`🟡 Projétil recebido no cliente:`, projectile);
+                    console.log(`🟡 Cliente recebeu projétil:`, projectile);
+
+                    // 🔥 Garante que o projétil foi recebido corretamente antes de adicioná-lo
+                    if (!projectile || projectile.x === undefined || projectile.y === undefined) {
+                        console.error("❌ Projétil recebido com dados inválidos!", projectile);
+                        return;
+                    }
+
                     projectiles.push(projectile);
                 });
+
 
                 socket.on("updateProjectiles", (serverProjectiles) => {
                     projectiles = serverProjectiles;
