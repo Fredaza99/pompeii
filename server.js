@@ -125,7 +125,7 @@ io.on("connection", (socket) => {
             projectiles.forEach((p, index) => {
                 if (!p) return;
 
-                // 🔥 Agora, usamos a velocidade que já foi definida na criação do projétil
+                // 🔥 Agora, o projétil mantém a velocidade original, sem recalcular a cada frame
                 p.x += p.velocityX;
                 p.y += p.velocityY;
 
@@ -143,7 +143,7 @@ io.on("connection", (socket) => {
                     }
                 }
 
-                // Remove projéteis após 2 segundos para evitar acúmulo
+                // 🔥 Remove projéteis após 2 segundos para evitar acúmulo
                 if (Date.now() - p.createdAt > 2000) {
                     projectiles.splice(index, 1);
                 }
@@ -151,6 +151,7 @@ io.on("connection", (socket) => {
 
             io.emit("updateProjectiles", projectiles);
         }, 50);
+
 
 
 
