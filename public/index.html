@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barco Animado no Canvas</title>
+    <title>Warships Battle Simulator</title>
     <style>
         body {
             margin: 0;
@@ -227,28 +227,34 @@ socket.on("removePlayer", (playerId) => {
        document.addEventListener("click", (event) => {
             let targetId = getClickedPlayer(event);
 
-            if (targetId && canShoot) {
-                // 🔥 Se clicar em um inimigo, ataca
-                socket.emit("shoot", { targetId });
-                canShoot = false;
-                setTimeout(() => { canShoot = true; }, 1000); // 1s de cooldown
+            if (targetId) {
+                selectedTarget = targetId;
+                console.log(`🎯 Alvo selecionado: ${selectedTarget}`);
             } else {
-                // 🔥 Se não clicar em inimigo, move o barco
+                console.log("🧭 Movendo para:", event.clientX, event.clientY);
                 ship.targetX = event.clientX;
                 ship.targetY = event.clientY;
             }
         });
 
+
         document.addEventListener("keydown", (event) => {
-            if (event.code === "Space") {
-                socket.emit("shoot", { angle: ship.frameIndex });
-            }
-        });
+                if (event.code === "Space" && selectedTarget && canShoot) {
+                    console.log(`🚀 Atacando ${selectedTarget}`);
+                    socket.emit("shoot", { targetId: selectedTarget });
+
+                    canShoot = false;
+                    setTimeout(() => { canShoot = true; }, 1000);
+                }
+            });
+
 
 
             socket.on("newProjectile", (projectile) => {
-                projectiles.push(projectile);
-            });
+                    console.log(`🟡 Projétil recebido no cliente:`, projectile);
+                    projectiles.push(projectile);
+                });
+
 
             socket.on("updateProjectiles", (serverProjectiles) => {
                 projectiles = serverProjectiles;
