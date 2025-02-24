@@ -312,6 +312,7 @@ socket.on("removePlayer", (playerId) => {
       shipImage.onload = () => {
             console.log("Imagem do navio carregada!");
             drawShips();  
+             moveShip();
             
         };
 
