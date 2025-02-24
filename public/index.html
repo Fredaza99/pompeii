@@ -305,20 +305,20 @@ socket.on("removePlayer", (playerId) => {
 
             // Função principal para desenhar projéteis e impactos
          function drawProjectiles() {
-                // 🔥 Percorre a lista de projéteis de trás para frente para evitar erro ao remover
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
 
                     if (!p) continue;
 
-                    // 🔥 O projétil mantém a mesma velocidade sem acelerar progressivamente
-                    const velocityX = Math.cos(p.angle) * p.speed;
-                    const velocityY = Math.sin(p.angle) * p.speed;
+                    // 🔥 Define a velocidade apenas no primeiro frame do projétil
+                    if (!p.velocityX || !p.velocityY) {
+                        p.velocityX = Math.cos(p.angle) * p.speed;
+                        p.velocityY = Math.sin(p.angle) * p.speed;
+                    }
 
-                    p.x += velocityX;
-                    p.y += velocityY;
+                    p.x += p.velocityX;
+                    p.y += p.velocityY;
 
-                    // 🔥 Desenha o projétil brilhante
                     drawLuminousBall(ctx, p.x, p.y);
 
                     // 🔥 Verifica se o projétil atingiu o alvo
@@ -337,6 +337,7 @@ socket.on("removePlayer", (playerId) => {
                     }
                 }
             }
+
 
 
                     // Desenha a explosão de impacto e a dissipa com o tempo
