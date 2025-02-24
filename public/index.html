@@ -303,18 +303,21 @@ socket.on("removePlayer", (playerId) => {
                     impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
                 });
 
-            // Função principal para desenhar projéteis e impactos
-         function drawProjectiles() {
+          function drawProjectiles() {
+                let toRemove = []; // Lista auxiliar para armazenar projéteis a serem removidos
+
                 for (let i = projectiles.length - 1; i >= 0; i--) {
                     let p = projectiles[i];
 
                     if (!p) continue;
 
-                   if (p.velocityX === undefined || p.velocityY === undefined) {
+                    // 🔥 Define a velocidade apenas uma vez, se ainda não estiver definida
+                    if (p.velocityX === undefined || p.velocityY === undefined) {
                         p.velocityX = Math.cos(p.angle) * p.speed;
                         p.velocityY = Math.sin(p.angle) * p.speed;
                     }
 
+                    // 🔥 Mantém a velocidade fixa sem recalcular
                     p.x += p.velocityX;
                     p.y += p.velocityY;
 
@@ -331,11 +334,15 @@ socket.on("removePlayer", (playerId) => {
                             console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
                             impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 }); // Criar explosão
 
-                            projectiles.splice(i, 1); // 🔥 Agora removemos o projétil corretamente
+                            toRemove.push(i); // 🔥 Marca para remover depois
                         }
                     }
                 }
+
+                // 🔥 Remove os projéteis fora do loop para evitar problemas de reindexação
+                toRemove.forEach(index => projectiles.splice(index, 1));
             }
+
 
 
 
