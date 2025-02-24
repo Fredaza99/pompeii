@@ -76,9 +76,15 @@ function isTargetInRange(attacker, target) {
         if (now - (player.lastShot || 0) < FIRE_RATE) return;
 
         player.lastShot = now;
+        console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
 
         let dx = target.x - player.x;
         let dy = target.y - player.y;
+        let angle = Math.atan2(dy, dx);
+        let speed = 5;
+
+        let velocityX = Math.cos(angle) * speed;
+        let velocityY = Math.sin(angle) * speed;
 
         console.log(`💥 ${socket.id} disparou contra ${data.targetId}`);
 
@@ -107,26 +113,18 @@ function isTargetInRange(attacker, target) {
             io.emit("updatePlayer", { id: data.targetId, ...target });
         }
 
-        // 🔥 Cálculo de velocidade fixa para evitar bug de aceleração
-        let speed = 5; // 🔥 Velocidade fixa
-        let angle = Math.atan2(dy, dx);
-        let velocityX = Math.cos(angle) * 5;
-        let velocityY = Math.sin(angle) * 5;
         let offset = 20; // Distância inicial do projétil em relação ao atacante
         let startX = player.x + Math.cos(angle) * offset;
         let startY = player.y + Math.sin(angle) * offset;
 
-        // 🔥 Disparo de múltiplos projéteis
         for (let i = 0; i < 8; i++) {
             setTimeout(() => {
-
                 let projectile = {
                     id: socket.id,
-                    x: startX,  // 🔥 Agora nasce um pouco mais longe
-                    y: startY,
-                    velocityX: velocityX,
+                    x: player.x,
+                    y: player.y,
+                    velocityX: velocityX, // 🔥 O problema de velocidade crescente pode estar aqui
                     velocityY: velocityY,
-                    angle: angle, // 🔥 Adicionando ângulo para o cliente
                     createdAt: Date.now(),
                     targetId: data.targetId
                 };
@@ -135,36 +133,35 @@ function isTargetInRange(attacker, target) {
             }, i * 50);
         }
 
-    // 🔥 Atualiza a posição dos projéteis no servidor
-    setInterval(() => {
-        for (let i = projectiles.length - 1; i >= 0; i--) {
-            let p = projectiles[i];
-            if (!p) continue;
+        setInterval(() => {
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let p = projectiles[i];
+                if (!p) continue;
 
-            p.x += p.velocityX;
-            p.y += p.velocityY;
+                p.x += p.velocityX;
+                p.y += p.velocityY;
 
-            let target = players[p.targetId];
-            if (target) {
-                let dx = target.x - p.x;
-                let dy = target.y - p.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
+                let target = players[p.targetId];
+                if (target) {
+                    let dx = target.x - p.x;
+                    let dy = target.y - p.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 10) { // 🔥 Se atingir o alvo, remove o projétil
-                    console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                    io.emit("impact", { x: p.x, y: p.y });
+                    if (distance < 10) { // 🔥 Se atingir o alvo, remove o projétil
+                        console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
+                        io.emit("impact", { x: p.x, y: p.y });
+                        projectiles.splice(i, 1);
+                    }
+                }
+
+                // 🔥 Remove projéteis antigos após 2 segundos
+                if (Date.now() - p.createdAt > 2000) {
                     projectiles.splice(i, 1);
                 }
             }
 
-            // 🔥 Remove projéteis antigos após 2 segundos
-            if (Date.now() - p.createdAt > 2000) {
-                projectiles.splice(i, 1);
-            }
-        }
-
-        io.emit("updateProjectiles", projectiles);
-    }, 50);
+            io.emit("updateProjectiles", projectiles);
+        }, 50);
 
 
 
