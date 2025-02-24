@@ -154,8 +154,8 @@ socket.on("removePlayer", (playerId) => {
 
                 // 🔥 Barra de vida abaixo do navio
                 let healthPercentage = player.health / 100;
-                let barWidth = 50;
-                let barHeight = 5;
+                let barWidth = 80;
+                let barHeight = 3;
 
                 ctx.fillStyle = "red";
                 ctx.fillRect(player.x - barWidth / 2, player.y + 30, barWidth, barHeight); // Fundo da barra
@@ -318,55 +318,64 @@ socket.on("removePlayer", (playerId) => {
                             impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
                         });
 
-         function drawProjectiles() {
+        function drawProjectiles() {
+                if (!projectiles || projectiles.length === 0) {
+                    console.warn("⚠️ Nenhum projétil para desenhar.");
+                    return;
+                }
+
+                console.log(`🔵 Renderizando ${projectiles.length} projéteis.`);
+
                 for (let i = projectiles.length - 1; i >= 0; i--) {
-                 let p = projectiles[i];
+                    let p = projectiles[i];
 
-                 if (!p) continue;
-
-                  // 🔥 Define a velocidade apenas no primeiro frame do projétil
-                    if (!p.velocityX || !p.velocityY) {
-                        p.velocityX = Math.cos(p.angle) * p.speed;
-                        p.velocityY = Math.sin(p.angle) * p.speed;
+                    if (!p) {
+                        console.warn(`⚠️ Projétil ${i} é indefinido, ignorando.`);
+                        continue;
                     }
 
+                    if (p.velocityX === undefined || p.velocityY === undefined) {
+                        console.warn(`⚠️ Projétil sem velocidade definida! Definindo padrão.`);
+                        p.velocityX = Math.cos(p.angle) * 5;
+                        p.velocityY = Math.sin(p.angle) * 5;
+                    }
+
+                    // 🔥 Movimenta o projétil
                     p.x += p.velocityX;
                     p.y += p.velocityY;
 
                     drawLuminousBall(ctx, p.x, p.y);
 
+                    let target = ships[p.targetId];
+                    if (target) {
+                        let dx = target.x - p.x;
+                        let dy = target.y - p.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 20) {
+                            console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
+                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 });
+
+                            projectiles.splice(i, 1);
+                        }
+                    }
                 }
 
-                  let target = ships[p.targetId];
-                        if (target) {
-                            let dx = target.x - p.x;
-                            let dy = target.y - p.y;
-                            let distance = Math.sqrt(dx * dx + dy * dy);
-
-                            if (distance < 20) { // Se o projétil atingir o alvo
-                                console.log(`💥 Projétil atingiu ${p.targetId}, removendo.`);
-                                impacts.push({ x: p.x, y: p.y, size: 15, opacity: 1 }); // Criar explosão
-                                projectiles.splice(index, 1); // Remove o projétil do array
-                            }
-                        }
-                    
+                requestAnimationFrame(drawProjectiles);
             }
 
 
 
 
-
-
-
-                    // Desenha a explosão de impacto e a dissipa com o tempo
-                    impacts.forEach((impact, index) => {
-                        drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
-                        impact.size += 1;
-                        impact.opacity -= 0.1;
-                        if (impact.opacity <= 0) {
-                            impacts.splice(index, 1);
-                        }
-                    });
+            // Desenha a explosão de impacto e a dissipa com o tempo
+            impacts.forEach((impact, index) => {
+                drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
+                impact.size += 1;
+                impact.opacity -= 0.1;
+                if (impact.opacity <= 0) {
+                    impacts.splice(index, 1);
+                }
+            });
                 
 
 
