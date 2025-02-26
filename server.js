@@ -68,7 +68,7 @@ io.on("connection", (socket) => {
 
         let now = Date.now();
         if (now - (player.lastShot || 0) < FIRE_RATE) {
-            return;
+            return; // 🔥 Evita spam de tiros
         }
 
         // 🔥 Calcula a distância entre o jogador e o inimigo
@@ -83,75 +83,52 @@ io.on("connection", (socket) => {
         player.lastShot = now;
 
         let angle = Math.atan2(dy, dx);
+        let speed = 5;
 
-        // 🔥 Aplica dano único ao alvo
-        target.health -= DAMAGE;
+        // 🔥 Cria um projétil que viaja até o inimigo
+        let projectile = {
+            id: socket.id,
+            startX: player.x,
+            startY: player.y,
+            targetX: target.x,
+            targetY: target.y,
+            angle: angle,
+            velocityX: Math.cos(angle) * speed,
+            velocityY: Math.sin(angle) * speed,
+            createdAt: Date.now()
+        };
 
-        io.emit("updateHealth", { target: data.targetId, health: target.health });
+        projectiles.push(projectile);
+        io.emit("newProjectile", projectile);
 
-        // 🔥 Se o alvo morreu, ele é respawnado
-        if (target.health <= 0) {
-            target.health = 100;
-            target.x = Math.random() * 800;
-            target.y = Math.random() * 600;
-            io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
-        }
+        // 🔥 Simula o impacto após o tempo de viagem do projétil
+        setTimeout(() => {
+            let dxFinal = target.x - projectile.targetX;
+            let dyFinal = target.y - projectile.targetY;
+            let finalDistance = Math.sqrt(dxFinal * dxFinal + dyFinal * dyFinal);
 
-        // 🔥 Disparo de múltiplos projéteis
-        let initialX = player.x;
-        let initialY = player.y;
-        let speed = 2;
+            if (finalDistance < 30) { // 🔥 Ajustado para garantir o impacto do projétil
+                // 🔥 Aplica dano único ao alvo
+                target.health -= DAMAGE;
 
-        let velocityX = Math.cos(angle) * speed;
-        let velocityY = Math.sin(angle) * speed;
+                io.emit("updateHealth", { target: data.targetId, health: target.health });
 
-        for (let i = 0; i < 8; i++) {
-            setTimeout(() => {
-                let projectile = {
-                    id: socket.id,
-                    x: initialX,
-                    y: initialY,
-                    angle: angle,
-                    velocityX: velocityX,
-                    velocityY: velocityY,
-                    speed: speed,
-                    createdAt: Date.now(),
-                    targetId: data.targetId // Associa ao alvo para animação de impacto
-                };
-                projectiles.push(projectile);
-                io.emit("newProjectile", projectile);
-            }, i * 50);
-        }
+                io.emit("impact", { x: target.x, y: target.y }); // 🔥 Animação de impacto no cliente
 
-        setInterval(() => {
-            projectiles.forEach((p, index) => {
-                if (!p) return;
-
-                // 🔥 Agora, o projétil mantém a velocidade original, sem recalcular a cada frame
-                p.x += p.velocityX;
-                p.y += p.velocityY;
-
-                // 🔥 Verifica colisão com o alvo
-                let target = players[p.targetId];
-                if (target) {
-                    let dx = target.x - p.x;
-                    let dy = target.y - p.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 20) { // Se o projétil atingir o alvo
-                        io.emit("impact", { x: p.x, y: p.y });
-                        projectiles.splice(index, 1);
-                    }
+                // 🔥 Se o alvo morreu, ele é respawnado
+                if (target.health <= 0) {
+                    target.health = 100;
+                    target.x = Math.random() * 800;
+                    target.y = Math.random() * 600;
+                    io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
                 }
+            }
+        }, distance / speed * 100); // 🔥 Tempo até o impacto baseado na velocidade
+  
 
-                // 🔥 Remove projéteis após 2 segundos para evitar acúmulo
-                if (Date.now() - p.createdAt > 2000) {
-                    projectiles.splice(index, 1);
-                }
-            });
+    
 
-            io.emit("updateProjectiles", projectiles);
-        }, 50);
+
 
 
 
