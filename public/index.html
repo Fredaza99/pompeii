@@ -5,20 +5,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="50x50" href="images/favicon-32x32.png">
     <link rel="manifest" href="/site.webmanifest">
     <title>Warships Battle Simulator</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background: url('images/seaback.png') no-repeat center center fixed;
+            background: url('images/seaback.webp') no-repeat center center fixed;
             background-size: cover;
+            animation: oceanWaves 10s infinite alternate ease-in-out; 
         }
 
         canvas {
             display: block;
         }
+
+
+          @keyframes fadeIn {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+   /* 🔥 Contêiner da névoa */
+/* 🔥 Contêiner da névoa */
+#fog-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Não interfere com cliques */
+    z-index: -1; /* Mantém a névoa atrás dos elementos */
+    overflow: hidden; /* Evita qualquer corte estranho */
+}
+
+/* 🔥 Camadas de névoa ajustadas */
+.fog-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%; /* 🔥 Faz a névoa ser maior que a tela para permitir um movimento mais amplo */
+    height: 100%;
+    background: url('images/fog.png') center/cover no-repeat; /* 🔥 Agora cobre toda a tela */
+    opacity: 0.15; /* Ajusta a intensidade da névoa */
+}
+
+/* 🔥 Animação para a névoa se mover suavemente */
+@keyframes fogMove {
+    from { transform: translateX(0px) translateY(0px) scale(1.1); }
+    to { transform: translateX(-100px) translateY(50px) scale(1.2); }
+}
+
+/* 🔥 Aplicando animações corrigidas para cada camada */
+#fog1 {
+    animation: fogMove 5s infinite alternate ease-in-out;
+    opacity: 0.25;
+}
+
+#fog2 {
+    animation: fogMove 5s infinite alternate ease-in-out;
+    opacity: 0.2;
+}
+
+#fog3 {
+    animation: fogMove 3s infinite alternate ease-in-out;
+    opacity: 0.15;
+}
+
+/* 🔥 Efeito de dissipação da névoa */
+.fog-fade-out {
+    opacity: 0; 
+    transition: opacity 2s ease-out; /* Faz a névoa desaparecer suavemente */
+}
+
+
+
+
     </style>
 </head>
 
@@ -27,8 +91,9 @@
 <div id="nameContainer" style="
     position: absolute;
     width: 50%;
-    max-width: 400px;
-    height: 50%;
+    max-width: 600px;
+    height: 60%;
+    max-height: 500px;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -37,32 +102,36 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0.8);
     z-index: 1000;
     border-radius: 15px;
     padding: 20px;
     text-align: center;
     box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
+    opacity: 0;
+    animation: fadeIn 1s ease-out forwards;
 ">
-    <!-- Ícone da caveira -->
-    <img src="images/coin.png" alt="Caveira Pirata" style="
-        width: 80px;
-        height: 80px;
-        margin-bottom: 10px;
+
+    <!-- Ícone da caveira POSICIONADO NO TOPO DA CAIXA -->
+    <img src="images/skull-pirates-with-sword-illustration.png" alt="Pirate Skull" style="
+        width: 200px;
+        height: 200px;
+        margin-bottom: 10px; /* 🔥 Dá espaço entre a caveira e o título */
     ">
 
-    <h2 style="margin-bottom: 15px; font-family: 'Pirata One', cursive; font-size: 26px;">
+    <h2 style="margin-top: 20px; margin-bottom: 5px; font-family: 'Pirata One', cursive; font-size: 30px;">
         Choose Your Nick
     </h2>
 
-    <input type="text" id="playerNameInput" placeholder="Type your nick here" maxlength="12" style="
-        padding: 12px;
+    <input type="text" id="playerNameInput"  maxlength="12" style="
+        padding: 15px;
         font-size: 16px;
         margin-bottom: 10px;
-        width: 90%;
+        margin-top: 20px;
+        width: 80%;
         text-align: center;
         border: none;
         border-radius: 8px;
@@ -73,10 +142,11 @@
     ">
 
     <button onclick="setPlayerName()" style="
-        padding: 12px 24px;
-        font-size: 18px;
+        padding: 15px 60px;
+        font-size: 28px;
         font-weight: bold;
         cursor: pointer;
+        margin-top: 30px;
         background: rgba(255, 255, 255, 0.2);
         border: none;
         color: white;
@@ -88,12 +158,19 @@
     </button>
 </div>
 
+<div id="fog-container">
+    <div class="fog-layer" id="fog1"></div>
+    <div class="fog-layer" id="fog2"></div>
+    <div class="fog-layer" id="fog3"></div>
+</div>
+
+
 
     <canvas id="gameCanvas"></canvas>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 
     <script>
-    const socket = io("https://pompeii.up.railway.app");
+    const socket = io("http://localhost:3000");
 
 
 
@@ -110,22 +187,21 @@
 
         const SPRITE_WIDTH = 83;
         const SPRITE_HEIGHT = 85;
+        const impacts = [];
+
         let animationInterval = null;
         let lastDirection = null;
         let canShoot = true;
+        let ship = null;
+        let isMoving = false; 
+        let lastEmitTime = 0;
+        let selectedTarget = null; // 🔥 Define o alvo inicialmente como nulo
+
+
+
 
         let ships = {}; 
         let projectiles = [];
-        let impacts = [];
-
-       let ship = {
-            x: 300, 
-            y: 300,
-            targetX: 300,
-            targetY: 300,
-            speed: 2.4,
-            frameIndex: 0
-        };
 
 
         function getFrameIndex(angle) {
@@ -167,11 +243,22 @@ socket.on("newPlayer", (player) => {
 });
 
     socket.on("setInitialPosition", (player) => {
-        ship.x = player.x;
-        ship.y = player.y;
-        ship.targetX = player.x;
-        ship.targetY = player.y;
-    });
+            console.log("🚢 Recebendo posição inicial do servidor:", player.x, player.y);
+
+            ship = {
+                x: player.x,
+                y: player.y,
+                targetX: player.x,
+                targetY: player.y,
+                speed: 2.4,
+                frameIndex: 0
+            };
+
+            // 🔥 Somente agora começamos a renderizar o jogo
+            requestAnimationFrame(drawShips);
+            requestAnimationFrame(moveShip);
+        });
+
 
 
     socket.on("updatePlayer", (player) => {
@@ -269,7 +356,17 @@ socket.on("removePlayer", (playerId) => {
                 socket.emit("setName", playerName); // 🔥 Envia o nome para o servidor
 
                 document.getElementById("nameContainer").style.display = "none"; // Esconde a tela de nome
-            }
+                
+                let fogContainer = document.getElementById("fog-container");
+            
+                fogContainer.classList.add("fog-fade-out"); // Aplica a classe CSS de fade-out
+
+            // 🔥 Remove a névoa do DOM após a transição
+            setTimeout(() => {
+                fogContainer.remove();
+            }, 2000); // Tempo da animação de fade-out
+        }
+
 
             socket.on("setName", (name) => {
                     if (players[socket.id]) {
@@ -277,6 +374,10 @@ socket.on("removePlayer", (playerId) => {
                         io.emit("updatePlayer", { id: socket.id, ...players[socket.id] }); // 🔥 Envia atualização do nome para todos
                     }
                 });
+                
+
+                   
+
 
 
 
@@ -285,21 +386,21 @@ socket.on("removePlayer", (playerId) => {
             let clickY = event.clientY;
 
             for (let id in ships) {
-                if (id !== socket.id) { // Não pode atacar a si mesmo
+                if (id !== socket.id) { // Evita selecionar a si mesmo
                     let player = ships[id];
 
-                    // Definir área de clique do navio
+                    // Define área clicável do navio
                     let shipLeft = player.x - SPRITE_WIDTH / 2;
                     let shipRight = player.x + SPRITE_WIDTH / 2;
                     let shipTop = player.y - SPRITE_HEIGHT / 2;
                     let shipBottom = player.y + SPRITE_HEIGHT / 2;
 
                     if (clickX >= shipLeft && clickX <= shipRight && clickY >= shipTop && clickY <= shipBottom) {
-                        return id;
+                        return id; // Retorna o ID do inimigo clicado
                     }
                 }
             }
-            return null;
+            return null; // Retorna nulo se nenhum inimigo foi clicado
         }
 
 
@@ -307,191 +408,224 @@ socket.on("removePlayer", (playerId) => {
 
 
 
+    function moveShip() {
+        if (!ship) return; // 🔥 Apenas checa se ship existe, mas não bloqueia a função
 
-       function moveShip() {
-            let dx = ship.targetX - ship.x;
-            let dy = ship.targetY - ship.y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
+            isMoving = true; // 🔥 Marca que a função está rodando para evitar chamadas duplicadas
 
-            if (distance > 1) {
-                ship.x += (dx / distance) * ship.speed;
-                ship.y += (dy / distance) * ship.speed;
-                let angle = Math.atan2(dy, dx);
-
-                let newDirection = null;
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    newDirection = dx > 0 ? "L" : "O";
-                } else {
-                    newDirection = dy > 0 ? "S" : "N";
+            function step() {
+                if (!ship) {
+                    isMoving = false;
+                    return;
                 }
 
-                if (newDirection !== lastDirection) {
-                    lastDirection = newDirection;
-                    if (newDirection !== "N" && newDirection !== "S" && newDirection !== "L" && newDirection !== "O") {
-                        clearInterval(animationInterval);
-                        ship.frameIndex = getFrameIndex(angle);
+                let dx = ship.targetX - ship.x;
+                let dy = ship.targetY - ship.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > ship.speed) { // 🔥 Se ainda não chegou ao destino
+                    ship.x += (dx / distance) * ship.speed;
+                    ship.y += (dy / distance) * ship.speed;
+                    let angle = Math.atan2(dy, dx);
+
+                    // 🔥 Atualiza a direção do navio
+                    let newDirection = null;
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        newDirection = dx > 0 ? "L" : "O";
                     } else {
-                        animateCardinalDirections(newDirection);
+                        newDirection = dy > 0 ? "S" : "N";
                     }
-                }
 
-                // 🔥 Envia posição + animação para o servidor
-                socket.emit("move", {
-                    x: ship.x,
-                    y: ship.y,
-                    angle: angle,
-                    frameIndex: ship.frameIndex
-                });
+                    if (newDirection !== lastDirection) {
+                        lastDirection = newDirection;
+                        if (!["N", "S", "L", "O"].includes(newDirection)) {
+                            clearInterval(animationInterval);
+                            ship.frameIndex = getFrameIndex(angle);
+                        } else {
+                            animateCardinalDirections(newDirection);
+                        }
+                    }
+
+                    // 🔥 Envia a posição atualizada ao servidor
+                    socket.emit("move", {
+                        x: ship.x,
+                        y: ship.y,
+                        angle: angle,
+                        frameIndex: ship.frameIndex
+                    });
+
+                    requestAnimationFrame(step); // 🔥 Continua movendo até chegar no destino
+                } else {
+                    isMoving = false; // 🔥 Para o movimento quando chegar ao destino
+                }
             }
 
-            requestAnimationFrame(moveShip);
+            requestAnimationFrame(step); // 🔥 Inicia o movimento corretamente
         }
 
 
-       document.addEventListener("click", (event) => {
-            let targetId = getClickedPlayer(event);
 
-            if (targetId) {
-                selectedTarget = targetId;
-                console.log(`🎯 Alvo selecionado: ${selectedTarget}`);
+
+      document.addEventListener("click", (event) => {
+            if (!ship) return;
+
+            let rect = canvas.getBoundingClientRect();
+            let correctedX = event.clientX - rect.left;
+            let correctedY = event.clientY - rect.top;
+
+            // 🔥 Verifica se o clique foi em um inimigo
+            let clickedEnemy = getClickedPlayer(event);
+
+            if (clickedEnemy) {
+                selectedTarget = clickedEnemy; // 🔥 Define o alvo do ataque
+                console.log(`🎯 Inimigo selecionado: ${selectedTarget}`);
             } else {
-                let rect = canvas.getBoundingClientRect();
-                let correctedX = event.clientX - rect.left;
-                let correctedY = event.clientY - rect.top;
-
+                selectedTarget = null; // 🔥 Remove a seleção caso clique no mar
                 ship.targetX = correctedX;
                 ship.targetY = correctedY;
+
+                // 🔥 Se o navio não estiver se movendo, inicia a movimentação
+                if (!isMoving) {
+                    moveShip();
+                }
             }
         });
 
 
 
-        document.addEventListener("keydown", (event) => {
-                if (event.code === "Space" && selectedTarget && canShoot) {
-                    socket.emit("shoot", { targetId: selectedTarget });
-
-                    canShoot = false;
-                    setTimeout(() => { canShoot = true; }, 1000);
-                }
-            });
 
 
 
-                      socket.on("newProjectile", (projectile) => {
-                            projectiles.push(projectile);
-                        });
+
+       document.addEventListener("keydown", (event) => {
+            if (event.code === "Space" && selectedTarget && canShoot) {
+                socket.emit("shoot", { targetId: selectedTarget });
+                canShoot = false;
+
+                // 🔥 Tempo de recarga para evitar spam de tiros
+                setTimeout(() => { canShoot = true; }, 1000);
+            }
+        });
 
 
-                        socket.on("updateProjectiles", (serverProjectiles) => {
-                            if (!serverProjectiles || !Array.isArray(serverProjectiles)) return; // 🔥 Protege contra erros
-                            projectiles = serverProjectiles;
-                        });
 
-
-                        // Função para desenhar um círculo luminoso no Canvas (efeito da bala)
-                        function drawLuminousBall(ctx, x, y) {
-                            let gradient = ctx.createRadialGradient(x, y, 2, x, y, 10);
-                            gradient.addColorStop(0, "rgba(255, 255, 0, 1)"); // Centro amarelo brilhante
-                            gradient.addColorStop(0.5, "rgba(255, 165, 0, 0.8)"); // Alaranjado ao redor
-                            gradient.addColorStop(1, "rgba(255, 0, 0, 0)"); // Vermelho transparente nas bordas
-
-                            ctx.fillStyle = gradient;
-                            ctx.beginPath();
-                            ctx.arc(x, y, 10, 0, Math.PI * 2);
-                            ctx.fill();
+                 function drawLuminousBall(ctx, x, y) {
+                        if (!isFinite(x) || !isFinite(y)) {
+                            console.warn("⚠️ Projétil com posição inválida detectado:", x, y);
+                            return; // 🔥 Evita desenhar projéteis inválidos
                         }
 
-                        function drawImpact(ctx, x, y, size, opacity) {
-                            ctx.fillStyle = `rgba(255, 140, 0, ${opacity})`;
-                            ctx.beginPath();
-                            ctx.arc(x, y, size, 0, Math.PI * 2);
-                            ctx.fill();
+                        let gradient = ctx.createRadialGradient(x, y, 2, x, y, 10);
+                        gradient.addColorStop(0, "rgba(255, 255, 0, 1)"); // Amarelo brilhante
+                        gradient.addColorStop(0.5, "rgba(255, 165, 0, 0.8)"); // Laranja suave
+                        gradient.addColorStop(1, "rgba(255, 0, 0, 0)"); // Dissipação vermelha
+
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+
+                        // Cria um efeito de impacto ao atingir o alvo
+                        function createImpactEffect(x, y) {
+                            impacts.push({ x, y, size: 15, opacity: 1 });
                         }
 
+                        // Atualiza e desenha os impactos
                         function drawImpacts() {
                             impacts.forEach((impact, index) => {
-                                drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
-                                impact.size += 1.5; // Aumenta gradativamente o tamanho da explosão
-                                impact.opacity -= 0.05; // Dissipa suavemente
+                                ctx.fillStyle = `rgba(255, 140, 0, ${impact.opacity})`;
+                                ctx.beginPath();
+                                ctx.arc(impact.x, impact.y, impact.size, 0, Math.PI * 2);
+                                ctx.fill();
+
+                                impact.size += 2;
+                                impact.opacity -= 0.05;
 
                                 if (impact.opacity <= 0) {
-                                    impacts.splice(index, 1); // Remove a explosão da lista quando sumir
+                                    impacts.splice(index, 1);
                                 }
                             });
 
                             requestAnimationFrame(drawImpacts);
                         }
 
+                        // Atualiza a posição dos projéteis
+                        function updateProjectiles() {
+                            for (let i = projectiles.length - 1; i >= 0; i--) {
+                                let p = projectiles[i];
 
-                        socket.on("impact", (data) => {
-                            impacts.push({ x: data.x, y: data.y, size: 15, opacity: 1 });
+                                p.x += p.velocityX;
+                                p.y += p.velocityY;
+
+                                // Verifica se o projétil atingiu o alvo
+                                let dx = p.targetX - p.x;
+                                let dy = p.targetY - p.y;
+                                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                                if (distance < 5) { // 🔥 Quando atinge o alvo
+                                    createImpactEffect(p.targetX, p.targetY);
+                                    projectiles.splice(i, 1); // Remove o projétil
+                                }
+                            }
+
+                            requestAnimationFrame(updateProjectiles);
+                        }
+
+                        // Renderiza os projéteis
+                        function drawProjectiles() {
+                            projectiles.forEach((p) => drawLuminousBall(ctx, p.x, p.y));
+                            requestAnimationFrame(drawProjectiles);
+                        }
+
+                        // Recebe os projéteis do servidor
+                        socket.on("newProjectile", (data) => {
+                            const angle = Math.atan2(data.targetY - data.startY, data.targetX - data.startX);
+                            const speed = 5;
+
+                            const projectile = {
+                                x: data.startX,
+                                y: data.startY,
+                                velocityX: Math.cos(angle) * speed,
+                                velocityY: Math.sin(angle) * speed,
+                                targetX: data.targetX,
+                                targetY: data.targetY
+                            };
+
+                            projectiles.push(projectile);
                         });
 
-        function drawProjectiles() {
-                if (!projectiles || projectiles.length === 0) {
-                    return;
-                }
-
-
-                for (let i = projectiles.length - 1; i >= 0; i--) {
-                    let p = projectiles[i];
-
-                    if (!p) {
-                        console.warn(`⚠️ Projétil ${i} é indefinido, ignorando.`);
-                        continue;
-                    }
-
-                    if (p.velocityX === undefined || p.velocityY === undefined) {
-                        console.warn(`⚠️ Projétil sem velocidade definida! Definindo padrão.`);
-                        p.velocityX = Math.cos(p.angle) * 5;
-                        p.velocityY = Math.sin(p.angle) * 5;
-                    }
-
-                    // 🔥 Movimenta o projétil
-                    p.x += p.velocityX;
-                    p.y += p.velocityY;
-
-                    drawLuminousBall(ctx, p.x, p.y);
-
-                    let target = ships[p.targetId];
-                    if (target) {
-                        let dx = target.x - p.x;
-                        let dy = target.y - p.y;
-                        let distance = Math.sqrt(dx * dx + dy * dy);
-
-                        if (distance < 20) {
-                            impacts.push({ x: p.x, y: p.y, size: 10, opacity: 1 });
-
-                            projectiles.splice(i, 1);
-                        }
-                    }
-                }
-
-                requestAnimationFrame(drawProjectiles);
-            }
-
-
-
-
-            // Desenha a explosão de impacto e a dissipa com o tempo
-            impacts.forEach((impact, index) => {
-                drawImpact(ctx, impact.x, impact.y, impact.size, impact.opacity);
-                impact.size += 1;
-                impact.opacity -= 0.1;
-                if (impact.opacity <= 0) {
-                    impacts.splice(index, 1);
-                }
-            });
+                        // Inicia os loops de animação
+                        updateProjectiles();
+                        drawProjectiles();
+                        drawImpacts();
                 
 
 
 
       shipImage.onload = () => {
-            drawShips();  
-             moveShip();
-             
-            
+            if (ship) {
+                drawShips();
+                moveShip();
+            }
         };
+
+
+         function typePlaceholder(text, speed) {
+                let input = document.getElementById("playerNameInput");
+                let i = 0;
+                function typing() {
+                    if (i < text.length) {
+                        input.placeholder += text.charAt(i);
+                        i++;
+                        setTimeout(typing, speed);
+                    }
+                }
+                setTimeout(typing, 400);
+            }
+
+            typePlaceholder("Enter your pirate name...", 100);
 
 
     </script>
