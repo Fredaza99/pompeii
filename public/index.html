@@ -9,23 +9,42 @@
     <link rel="manifest" href="/site.webmanifest">
     <title>Warships Battle Simulator</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: url('images/seaback.webp') no-repeat center center fixed;
-            background-size: cover;
-            animation: oceanWaves 10s infinite alternate ease-in-out; 
-        }
 
-        canvas {
-            display: block;
-        }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+     display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* 🔥 Impede rolagem */
+    background: url('images/seaback.webp') no-repeat center center;
+    background-size: cover;
+    outline: 5px solid red !important; /* 🔥 Mantém a borda para debug */
+}
+
+
+
+    #canvas {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1920px; /* 🔥 Agora o tamanho será fixo */
+    height: 1080px;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    
+}
 
 
           @keyframes fadeIn {
         0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
         100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     }
+
 
 
    /* 🔥 Contêiner da névoa */
@@ -80,6 +99,54 @@
     transition: opacity 2s ease-out; /* Faz a névoa desaparecer suavemente */
 }
 
+#gameHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 55px;
+    background: url('images/wood-texture.webp') repeat center center;
+    background-size: cover;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    justify-content: center; /* Centraliza a logo */
+    align-items: center;
+    z-index: 9999;
+    font-family: 'Pirata One', serif;
+    box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+    padding: 0 15px;
+}
+
+#fpsCounter {
+    position: absolute;
+    left: 15px; /* 🔥 Mantém o FPS no canto esquerdo */
+    font-size: 12px;
+    font-weight: bold;
+    color: whitesmoke;
+    text-shadow: 1px 1px 2px black;
+}
+
+#gameLogo {
+    height: 85px; /* Ajuste conforme o tamanho da logo */
+    object-fit: contain;
+}
+
+#gameBorder {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    pointer-events: none; /* 🔥 Permite interação com o jogo */
+    border: 25px solid rgba(0, 0, 0, 0.4); /* 🔥 Borda semi-transparente */
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5); /* 🔥 Efeito de vinheta */
+    z-index: 9998; /* 🔥 Mantém a borda abaixo do header */
+}
+
+
+
+
 
 
 
@@ -87,13 +154,19 @@
 </head>
 
 <body>
+<header id="gameHeader">
+    <span id="fpsCounter">FPS: --</span>
+    <img id="gameLogo" src="images/skull-pirates-with-sword-illustration.png" alt="Game Logo">
+</header>
+
+
 
 <div id="nameContainer" style="
     position: absolute;
     width: 50%;
-    max-width: 600px;
+    max-width: 450px;
     height: 60%;
-    max-height: 500px;
+    max-height: 550px;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -117,9 +190,9 @@
 
     <!-- Ícone da caveira POSICIONADO NO TOPO DA CAIXA -->
     <img src="images/skull-pirates-with-sword-illustration.png" alt="Pirate Skull" style="
-        width: 200px;
-        height: 200px;
-        margin-bottom: 10px; /* 🔥 Dá espaço entre a caveira e o título */
+        width: 150px;
+        height: 150px;
+        margin-bottom: 5px; /* 🔥 Dá espaço entre a caveira e o título */
     ">
 
     <h2 style="margin-top: 20px; margin-bottom: 5px; font-family: 'Pirata One', cursive; font-size: 30px;">
@@ -142,17 +215,17 @@
     ">
 
     <button onclick="setPlayerName()" style="
-        padding: 15px 60px;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-        margin-top: 30px;
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        color: white;
-        border-radius: 8px;
-        transition: 0.3s;
-    " onmouseover="this.style.background='rgba(255, 255, 255, 0.4)'"
+            padding: 10px 60px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            transition: 0.3s;
+        " onmouseover="this.style.background='rgba(255, 255, 255, 0.4)'"
         onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
         Play
     </button>
@@ -164,473 +237,20 @@
     <div class="fog-layer" id="fog3"></div>
 </div>
 
+<canvas id="gameCanvas"></canvas>
+<div id="gameBorder"></div>
 
 
-    <canvas id="gameCanvas"></canvas>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/network.js" defer></script>
+<script src="/movement.js" defer></script>
+<script src="/projectiles.js" defer></script>
+<script src="/game.js" defer></script>
+<script src="/attack.js" defer></script>
+<script src="/script.js" defer></script>
 
-    <script>
-    const socket = io("https://pompeii.up.railway.app");
-    
 
 
-
-
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        let shipImage = new Image();
-        shipImage.src = "/images/navio_spritesheet.png";
-        let healthIcon = new Image();
-        healthIcon.src = "/images/rei.gif"; // Coloque o caminho correto do seu ícone de vida
-
-
-        const SPRITE_WIDTH = 83;
-        const SPRITE_HEIGHT = 85;
-        const impacts = [];
-
-        let animationInterval = null;
-        let lastDirection = null;
-        let canShoot = true;
-        let ship = null;
-        let isMoving = false; 
-        let lastEmitTime = 0;
-        let selectedTarget = null; // 🔥 Define o alvo inicialmente como nulo
-
-
-
-
-        let ships = {}; 
-        let projectiles = [];
-
-
-        function getFrameIndex(angle) {
-            if (angle >= -Math.PI / 4 && angle < Math.PI / 4) {
-                return 3; // Nordeste (NE)
-            } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
-                return 0; // Noroeste (NO)
-            } else if (angle >= -3 * Math.PI / 4 && angle < -Math.PI / 4) {
-                return 1; // Sudeste (SE)
-            } else {
-                return 2; // Sudoeste (SO)
-            }
-        }
-
-        function animateCardinalDirections(direction) {
-            if (animationInterval) clearInterval(animationInterval);
-
-            let frames = [];
-            if (direction === "N") frames = [1, 2]; // Norte alterna entre SE e SO
-            else if (direction === "S") frames = [0, 3]; // Sul alterna entre NO e NE
-            else if (direction === "L") frames = [3, 1]; // Leste alterna entre NE e SE
-            else if (direction === "O") frames = [0, 2]; // Oeste alterna entre NO e SO
-
-            let currentFrame = 0;
-            animationInterval = setInterval(() => {
-                ship.frameIndex = frames[currentFrame];
-                currentFrame = (currentFrame + 1) % 2;
-            }, 180);
-        }
-
-   socket.on("currentPlayers", (serverPlayers) => {
-        ships = serverPlayers;
-        console.log("Recebendo jogadores do servidor:", ships); // Depuração
-    });
-
-
-socket.on("newPlayer", (player) => {
-    ships[player.id] = player;
-});
-
-    socket.on("setInitialPosition", (player) => {
-            console.log("🚢 Recebendo posição inicial do servidor:", player.x, player.y);
-
-            ship = {
-                x: player.x,
-                y: player.y,
-                targetX: player.x,
-                targetY: player.y,
-                speed: 2.4,
-                frameIndex: 0
-            };
-
-            // 🔥 Somente agora começamos a renderizar o jogo
-            requestAnimationFrame(drawShips);
-            requestAnimationFrame(moveShip);
-        });
-
-
-
-    socket.on("updatePlayer", (player) => {
-        if (ships[player.id]) {
-            ships[player.id] = player;
-        }
-    });
-
-
-socket.on("removePlayer", (playerId) => {
-    delete ships[playerId];
-});
-
-
-        socket.on("newProjectile", (projectile) => {
-                if (!projectile || projectile.x === undefined || projectile.y === undefined) {
-                    console.error("❌ Projétil recebido com dados inválidos!", projectile);
-                    return;
-                }
-
-                // 🔥 Garante que o ângulo esteja presente para evitar projéteis parados
-                if (projectile.angle === undefined) {
-                    console.warn("⚠️ Projétil recebido sem ângulo! Definindo padrão.");
-                    projectile.angle = Math.atan2(projectile.velocityY, projectile.velocityX);
-                }
-
-                projectiles.push(projectile);
-            });
-
-
-
-     function drawShips() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (let id in ships) {
-                let player = ships[id];
-                if (!player) continue;
-
-                ctx.save();
-                ctx.translate(player.x, player.y);
-
-                let spriteX = (player.frameIndex || 0) * SPRITE_WIDTH;
-
-                // 🔥 Desenha o navio
-                ctx.drawImage(
-                    shipImage,
-                    spriteX, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
-                    -SPRITE_WIDTH / 2, -SPRITE_HEIGHT / 2, SPRITE_WIDTH, SPRITE_HEIGHT
-                );
-
-                ctx.restore();
-
-                    let healthPercentage = player.health / 100;
-                let barWidth = 100;
-                let barHeight = 3;
-                let barY = player.y + 60; // Ajuste de posição vertical da barra
-                
-                let iconSize = 22; // Ajuste o tamanho conforme necessário
-                let iconX = player.x - (barWidth / 2) - iconSize - 5; // Posiciona à esquerda da barra
-                let iconY = barY - (iconSize / 4); 
-
-                ctx.drawImage(healthIcon, iconX, iconY, iconSize, iconSize); // Desenha o ícone
-
-                ctx.fillStyle = "red";
-                ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth, barHeight); // Fundo da barra
-
-                ctx.fillStyle = "green";
-                ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth * healthPercentage, barHeight); // Vida atual
-            
-                        // 🔥 Exibir nome do jogador acima da barra de vida
-                if (player.name) {
-                    ctx.fillStyle = "white";
-                    ctx.font = "14px Arial";
-                    ctx.textAlign = "center";
-                    ctx.fillText(player.name, player.x, barY - -2); // Nome acima da barra de vida
-                }
-            }
-
-            drawProjectiles();
-            drawImpacts();
-            
-
-            requestAnimationFrame(drawShips);
-        }
-
-        function setPlayerName() {
-                const input = document.getElementById("playerNameInput");
-                const playerName = input.value.trim();
-
-                if (playerName === "") {
-                    alert("Por favor, digite um nome!");
-                    return;
-                }
-
-                socket.emit("setName", playerName); // 🔥 Envia o nome para o servidor
-
-                document.getElementById("nameContainer").style.display = "none"; // Esconde a tela de nome
-                
-                let fogContainer = document.getElementById("fog-container");
-            
-                fogContainer.classList.add("fog-fade-out"); // Aplica a classe CSS de fade-out
-
-            // 🔥 Remove a névoa do DOM após a transição
-            setTimeout(() => {
-                fogContainer.remove();
-            }, 2000); // Tempo da animação de fade-out
-        }
-
-
-            socket.on("setName", (name) => {
-                    if (players[socket.id]) {
-                        players[socket.id].name = name;
-                        io.emit("updatePlayer", { id: socket.id, ...players[socket.id] }); // 🔥 Envia atualização do nome para todos
-                    }
-                });
-                
-
-                   
-
-
-
-
-     function getClickedPlayer(event) {
-            let clickX = event.clientX;
-            let clickY = event.clientY;
-
-            for (let id in ships) {
-                if (id !== socket.id) { // Evita selecionar a si mesmo
-                    let player = ships[id];
-
-                    // Define área clicável do navio
-                    let shipLeft = player.x - SPRITE_WIDTH / 2;
-                    let shipRight = player.x + SPRITE_WIDTH / 2;
-                    let shipTop = player.y - SPRITE_HEIGHT / 2;
-                    let shipBottom = player.y + SPRITE_HEIGHT / 2;
-
-                    if (clickX >= shipLeft && clickX <= shipRight && clickY >= shipTop && clickY <= shipBottom) {
-                        return id; // Retorna o ID do inimigo clicado
-                    }
-                }
-            }
-            return null; // Retorna nulo se nenhum inimigo foi clicado
-        }
-
-
-
-
-
-
-    function moveShip() {
-        if (!ship) return; // 🔥 Apenas checa se ship existe, mas não bloqueia a função
-
-            isMoving = true; // 🔥 Marca que a função está rodando para evitar chamadas duplicadas
-
-            function step() {
-                if (!ship) {
-                    isMoving = false;
-                    return;
-                }
-
-                let dx = ship.targetX - ship.x;
-                let dy = ship.targetY - ship.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > ship.speed) { // 🔥 Se ainda não chegou ao destino
-                    ship.x += (dx / distance) * ship.speed;
-                    ship.y += (dy / distance) * ship.speed;
-                    let angle = Math.atan2(dy, dx);
-
-                    // 🔥 Atualiza a direção do navio
-                    let newDirection = null;
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        newDirection = dx > 0 ? "L" : "O";
-                    } else {
-                        newDirection = dy > 0 ? "S" : "N";
-                    }
-
-                    if (newDirection !== lastDirection) {
-                        lastDirection = newDirection;
-                        if (!["N", "S", "L", "O"].includes(newDirection)) {
-                            clearInterval(animationInterval);
-                            ship.frameIndex = getFrameIndex(angle);
-                        } else {
-                            animateCardinalDirections(newDirection);
-                        }
-                    }
-
-                    // 🔥 Envia a posição atualizada ao servidor
-                    socket.emit("move", {
-                        x: ship.x,
-                        y: ship.y,
-                        angle: angle,
-                        frameIndex: ship.frameIndex
-                    });
-
-                    requestAnimationFrame(step); // 🔥 Continua movendo até chegar no destino
-                } else {
-                    isMoving = false; // 🔥 Para o movimento quando chegar ao destino
-                }
-            }
-
-            requestAnimationFrame(step); // 🔥 Inicia o movimento corretamente
-        }
-
-
-
-
-      document.addEventListener("click", (event) => {
-            if (!ship) return;
-
-            let rect = canvas.getBoundingClientRect();
-            let correctedX = event.clientX - rect.left;
-            let correctedY = event.clientY - rect.top;
-
-            // 🔥 Verifica se o clique foi em um inimigo
-            let clickedEnemy = getClickedPlayer(event);
-
-            if (clickedEnemy) {
-                selectedTarget = clickedEnemy; // 🔥 Define o alvo do ataque
-                console.log(`🎯 Inimigo selecionado: ${selectedTarget}`);
-            } else {
-                selectedTarget = null; // 🔥 Remove a seleção caso clique no mar
-                ship.targetX = correctedX;
-                ship.targetY = correctedY;
-
-                // 🔥 Se o navio não estiver se movendo, inicia a movimentação
-                if (!isMoving) {
-                    moveShip();
-                }
-            }
-        });
-
-
-
-
-
-
-
-       document.addEventListener("keydown", (event) => {
-            if (event.code === "Space" && selectedTarget && canShoot) {
-                socket.emit("shoot", { targetId: selectedTarget });
-                canShoot = false;
-
-                // 🔥 Tempo de recarga para evitar spam de tiros
-                setTimeout(() => { canShoot = true; }, 1000);
-            }
-        });
-
-
-
-                 function drawLuminousBall(ctx, x, y) {
-                        if (!isFinite(x) || !isFinite(y)) {
-                            console.warn("⚠️ Projétil com posição inválida detectado:", x, y);
-                            return; // 🔥 Evita desenhar projéteis inválidos
-                        }
-
-                        let gradient = ctx.createRadialGradient(x, y, 2, x, y, 10);
-                        gradient.addColorStop(0, "rgba(255, 255, 0, 1)"); // Amarelo brilhante
-                        gradient.addColorStop(0.5, "rgba(255, 165, 0, 0.8)"); // Laranja suave
-                        gradient.addColorStop(1, "rgba(255, 0, 0, 0)"); // Dissipação vermelha
-
-                        ctx.fillStyle = gradient;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 8, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-
-
-                        // Cria um efeito de impacto ao atingir o alvo
-                        function createImpactEffect(x, y) {
-                            impacts.push({ x, y, size: 15, opacity: 1 });
-                        }
-
-                        // Atualiza e desenha os impactos
-                        function drawImpacts() {
-                            impacts.forEach((impact, index) => {
-                                ctx.fillStyle = `rgba(255, 140, 0, ${impact.opacity})`;
-                                ctx.beginPath();
-                                ctx.arc(impact.x, impact.y, impact.size, 0, Math.PI * 2);
-                                ctx.fill();
-
-                                impact.size += 2;
-                                impact.opacity -= 0.05;
-
-                                if (impact.opacity <= 0) {
-                                    impacts.splice(index, 1);
-                                }
-                            });
-
-                            requestAnimationFrame(drawImpacts);
-                        }
-
-                        // Atualiza a posição dos projéteis
-                        function updateProjectiles() {
-                            for (let i = projectiles.length - 1; i >= 0; i--) {
-                                let p = projectiles[i];
-
-                                p.x += p.velocityX;
-                                p.y += p.velocityY;
-
-                                // Verifica se o projétil atingiu o alvo
-                                let dx = p.targetX - p.x;
-                                let dy = p.targetY - p.y;
-                                let distance = Math.sqrt(dx * dx + dy * dy);
-
-                                if (distance < 5) { // 🔥 Quando atinge o alvo
-                                    createImpactEffect(p.targetX, p.targetY);
-                                    projectiles.splice(i, 1); // Remove o projétil
-                                }
-                            }
-
-                            requestAnimationFrame(updateProjectiles);
-                        }
-
-                        // Renderiza os projéteis
-                        function drawProjectiles() {
-                            projectiles.forEach((p) => drawLuminousBall(ctx, p.x, p.y));
-                            requestAnimationFrame(drawProjectiles);
-                        }
-
-                        // Recebe os projéteis do servidor
-                        socket.on("newProjectile", (data) => {
-                            const angle = Math.atan2(data.targetY - data.startY, data.targetX - data.startX);
-                            const speed = 5;
-
-                            const projectile = {
-                                x: data.startX,
-                                y: data.startY,
-                                velocityX: Math.cos(angle) * speed,
-                                velocityY: Math.sin(angle) * speed,
-                                targetX: data.targetX,
-                                targetY: data.targetY
-                            };
-
-                            projectiles.push(projectile);
-                        });
-
-                        // Inicia os loops de animação
-                        updateProjectiles();
-                        drawProjectiles();
-                        drawImpacts();
-                
-
-
-
-      shipImage.onload = () => {
-            if (ship) {
-                drawShips();
-                moveShip();
-            }
-        };
-
-
-         function typePlaceholder(text, speed) {
-                let input = document.getElementById("playerNameInput");
-                let i = 0;
-                function typing() {
-                    if (i < text.length) {
-                        input.placeholder += text.charAt(i);
-                        i++;
-                        setTimeout(typing, speed);
-                    }
-                }
-                setTimeout(typing, 400);
-            }
-
-            typePlaceholder("Enter your pirate name...", 100);
-
-
-    </script>
 </body>
 
 </html>
