@@ -6,7 +6,7 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-const ATTACK_RANGE = 400; // Distância máxima para atacar
+const ATTACK_RANGE = 600; // Distância máxima para atacar
 const FIRE_RATE = 1000; // Tempo de recarga (1 segundo)
 const DAMAGE = 10; // Dano por tiro
 
@@ -67,25 +67,19 @@ io.on("connection", (socket) => {
         if (!player || !target) return;
 
         let now = Date.now();
-        if (now - (player.lastShot || 0) < FIRE_RATE) {
-            return; // 🔥 Evita spam de tiros
-        }
+        if (now - (player.lastShot || 0) < FIRE_RATE) return;
 
-        // 🔥 Calcula a distância entre o jogador e o inimigo
         let dx = target.x - player.x;
         let dy = target.y - player.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > ATTACK_RANGE) { // 🔥 Se o inimigo estiver muito longe, cancela o ataque
-            return;
-        }
+        if (distance > ATTACK_RANGE) return;
 
         player.lastShot = now;
 
         let angle = Math.atan2(dy, dx);
-        let speed = 5;
+        let speed = 1;
 
-        // 🔥 Cria um projétil que viaja até o inimigo
         let projectile = {
             id: socket.id,
             startX: player.x,
@@ -101,32 +95,49 @@ io.on("connection", (socket) => {
         projectiles.push(projectile);
         io.emit("newProjectile", projectile);
 
-        // 🔥 Simula o impacto após o tempo de viagem do projétil
+        // 🔥 Simula o impacto após um tempo baseado na velocidade
         setTimeout(() => {
-            let dxFinal = target.x - projectile.targetX;
-            let dyFinal = target.y - projectile.targetY;
+            // 🔥 Garante que o alvo ainda exista antes de calcular o impacto
+            if (!players[data.targetId]) {
+                console.log(`⚠️ Alvo ${data.targetId} não encontrado, removendo projétil.`);
+                projectiles = projectiles.filter(p => p !== projectile);
+                io.emit("updateProjectiles", projectiles);
+                return;
+            }
+
+            let target = players[data.targetId]; // 🔥 Atualiza o alvo para garantir posição correta
+            let dxFinal = target.x - projectile.x;
+            let dyFinal = target.y - projectile.y;
             let finalDistance = Math.sqrt(dxFinal * dxFinal + dyFinal * dyFinal);
 
-            if (finalDistance < 30) { // 🔥 Ajustado para garantir o impacto do projétil
-                // 🔥 Aplica dano único ao alvo
-                target.health -= DAMAGE;
+            if (finalDistance < 35) { // 🔥 Ajuste fino da hitbox para impactos mais precisos
+                console.log(`💥 Projétil atingiu ${data.targetId}, aplicando ${DAMAGE} de dano.`);
 
+                // 🔥 Aplica dano ao alvo, garantindo que a vida não fique negativa
+                target.health = Math.max(target.health - DAMAGE, 0);
                 io.emit("updateHealth", { target: data.targetId, health: target.health });
 
-                io.emit("impact", { x: target.x, y: target.y }); // 🔥 Animação de impacto no cliente
+                io.emit("impact", { x: target.x, y: target.y });
 
                 // 🔥 Se o alvo morreu, ele é respawnado
                 if (target.health <= 0) {
                     target.health = 100;
                     target.x = Math.random() * 800;
                     target.y = Math.random() * 600;
-                    io.emit("updatePlayer", { id: data.targetId, ...target }); // 🔥 Atualiza a posição e vida do jogador morto
+                    io.emit("updatePlayer", { id: data.targetId, ...target });
                 }
             }
-        }, distance / speed * 100); // 🔥 Tempo até o impacto baseado na velocidade
-  
+
+            // 🔥 Remove o projétil corretamente do array
+            projectiles = projectiles.filter(p => p !== projectile);
+            io.emit("updateProjectiles", projectiles);
+        }, distance / speed * 100);
 
     
+
+    
+
+
 
 
 
@@ -164,4 +175,3 @@ io.on("connection", (socket) => {
 
 server.listen(3000, () => {
 });
-
