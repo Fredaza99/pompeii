@@ -64,20 +64,19 @@ resizeCanvas(); // 🔥 Chama a função ao iniciar
 function fixCanvasSize() {
     const canvas = document.getElementById("gameCanvas");
 
-    // 🔥 Garante que o canvas sempre será 1920x1080, independente do monitor ou zoom
-    canvas.width = 1920;
-    canvas.height = 1080;
-    canvas.style.width = "1920px";
-    canvas.style.height = "1080px";
-    canvas.style.position = "absolute";
-    canvas.style.top = "50%";
-    canvas.style.left = "50%";
-    canvas.style.transform = "translate(-50%, -50%)";
+    // 🔥 Verifica se a tela é menor que 1920x1080 e ajusta
+    let width = window.innerWidth < 1920 ? window.innerWidth : 1920;
+    let height = window.innerHeight < 1080 ? window.innerHeight : 1080;
 
-    console.log(`Canvas fixado: ${canvas.width} x ${canvas.height}`);
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    console.log(`Canvas ajustado: ${canvas.width} x ${canvas.height}`);
 }
 
-// 🔥 Garante que o tamanho nunca mude
+// 🔥 Chama a função no início e sempre que a tela for redimensionada
 window.onload = fixCanvasSize;
 window.addEventListener("resize", fixCanvasSize);
 
