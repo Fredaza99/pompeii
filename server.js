@@ -45,6 +45,10 @@ io.on("connection", (socket) => {
         console.log(`Novo jogador conectado: ${playerName} (${socket.id})`);
     });
 
+    socket.on("pingCheck", () => {
+        socket.emit("pingResponse"); // 🔥 Retorna a resposta para o cliente
+    });
+
     socket.on("move", (data) => {
         if (players[socket.id]) {
             players[socket.id].x = data.x;
@@ -63,23 +67,50 @@ io.on("connection", (socket) => {
     socket.on("shoot", (data) => {
         let player = players[socket.id];
         let target = players[data.targetId];
-
+    
         if (!player || !target) return;
-
+    
         let now = Date.now();
         if (now - (player.lastShot || 0) < FIRE_RATE) return;
-
+    
         let dx = target.x - player.x;
         let dy = target.y - player.y;
         let distance = Math.sqrt(dx * dx + dy * dy);
-
+    
         if (distance > ATTACK_RANGE) return;
-
+    
         player.lastShot = now;
-
+    
         let angle = Math.atan2(dy, dx);
         let speed = 1;
+    
+        const projectileColors = [
+            "rgb(227, 13, 13)",  "rgb(246, 161, 5)",  "rgb(255, 255, 20)", 
+            "rgb(36, 255, 36)",  "rgb(62, 255, 255)", "rgb(47, 47, 255)", 
+            "rgb(128, 0, 128)",  "rgb(255, 55, 162)"
+        ];
+    
+        let chosenColor = projectileColors[Math.floor(Math.random() * projectileColors.length)];
+    
+        // 🔥 Gera 8 bolas orbitantes com spawnTime espaçados corretamente
+        const orbitBalls = [];
+        const MAX_DELAY = 800; // 🔥 Define um atraso maior para garantir espaçamento real
 
+        for (let i = 0; i < 8; i++) {
+            let angleOffset = (i / 8) * (Math.PI * 2);
+            let ballColor = projectileColors[i % projectileColors.length];
+        
+            // 🔥 Agora cada bola tem um delay progressivo e aleatório
+            let delay = (i * 150) + Math.random() * MAX_DELAY;  
+        
+            orbitBalls.push({
+                angleOffset: angleOffset,
+                color: ballColor,
+                spawnTime: now + delay  // Agora os tempos de spawn são bem distribuídos!
+            });
+        }
+        
+    
         let projectile = {
             id: socket.id,
             startX: player.x,
@@ -89,11 +120,21 @@ io.on("connection", (socket) => {
             angle: angle,
             velocityX: Math.cos(angle) * speed,
             velocityY: Math.sin(angle) * speed,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            color: chosenColor,
+            orbitBalls: orbitBalls
         };
-
+    
+        console.log(`✅ Projétil criado no servidor com cor: ${projectile.color}`);
+    
         projectiles.push(projectile);
         io.emit("newProjectile", projectile);
+
+    
+    
+    
+    
+        
 
         // 🔥 Simula o impacto após um tempo baseado na velocidade
         setTimeout(() => {
@@ -174,4 +215,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(3000, () => {
+    console.log("servidor rodando na porta 3000")
 });
