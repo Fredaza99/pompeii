@@ -1,4 +1,4 @@
-const socket = io("https://pompeii.up.railway.app/");
+const socket = io("http://localhost:3000");
 
 
 

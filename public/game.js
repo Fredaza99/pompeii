@@ -1,14 +1,8 @@
 // 🎮 Configuração do Canvas
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-
-const GAME_WIDTH = 1920;
-const GAME_HEIGHT = 1080;
-canvas.width = GAME_WIDTH;
-canvas.height = GAME_HEIGHT;
-
-let lastScale = 1; // Armazena a escala anterior
-
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 // 🎮 Carrega imagens
 let shipImage = new Image();
@@ -37,54 +31,15 @@ let lastEmitTime = 0;
 let selectedTarget = null;
 let selectedTargetId = null;
 let canShoot = true;
-let targetLoopRunning = false;
-const targetFPS = 60; // 🔥 Define o FPS alvo
+let targetLoopRunning = false; // 🔥 Controle do loop de seleção
 
 
-
-function resizeCanvas() {
-    let scale = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
-
-    if (scale !== lastScale) { // 🔥 Apenas atualiza se necessário
-        lastScale = scale;
-
-        canvas.style.position = "absolute";
-        canvas.style.top = "50%";
-        canvas.style.left = "50%";
-        canvas.style.width = `${GAME_WIDTH * scale}px`;
-        canvas.style.height = `${GAME_HEIGHT * scale}px`;
-        canvas.style.transform = "translate(-50%, -50%)";
-    }
-}
-
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas(); // 🔥 Chama a função ao iniciar
-
-
-function fixCanvasSize() {
-    const canvas = document.getElementById("gameCanvas");
-
-    // 🔥 Verifica se a tela é menor que 1920x1080 e ajusta
-    let width = window.innerWidth < 1920 ? window.innerWidth : 1920;
-    let height = window.innerHeight < 1080 ? window.innerHeight : 1080;
-
-    canvas.width = width;
-    canvas.height = height;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-
-    console.log(`Canvas ajustado: ${canvas.width} x ${canvas.height}`);
-}
-
-// 🔥 Chama a função no início e sempre que a tela for redimensionada
-window.onload = fixCanvasSize;
-window.addEventListener("resize", fixCanvasSize);
 
 
 
 
 function drawShips() {
-    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     for (let id in ships) {
         let player = ships[id];
@@ -202,9 +157,7 @@ function projectileLoop() {
 function gameLoop() {
     let startTime = performance.now(); // ⏳ Medir tempo do frame
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.05)"; // 🔥 Fundo semi-transparente para evitar flickering
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // 🔥 Limpa a tela antes de desenhar
 
     drawShips();
     moveShip();
