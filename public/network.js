@@ -1,4 +1,4 @@
-const socket = io("http://pompeii.up.railway.app/");
+const socket = io("http://localhost:3000");
 
 
 
@@ -44,13 +44,6 @@ socket.on("removePlayer", (playerId) => {
 
 
 socket.on("newProjectile", (data) => {
-    if (!data.color || typeof data.color !== "string") {
-        console.warn("⚠️ Projétil recebido sem cor! Usando fallback.");
-        data.color = "rgb(255, 255, 255)";
-    }
-
-    console.log(`🔥 Novo projétil recebido: x=${data.startX}, y=${data.startY}, cor=${data.color}`);
-
     projectiles.push({
         x: data.startX,
         y: data.startY,
@@ -58,11 +51,11 @@ socket.on("newProjectile", (data) => {
         velocityY: data.velocityY,
         targetX: data.targetX,
         targetY: data.targetY,
-        color: data.color,
-        orbitBalls: data.orbitBalls || []
+        targetId: data.targetId, // 🔥 Agora garantimos que o alvo está correto
+
     });
 
-
+    console.log(`✅ Projétil adicionado à lista! Total: ${projectiles.length}`);
 
     if (!projectileLoopRunning) {
         projectileLoopRunning = true;
