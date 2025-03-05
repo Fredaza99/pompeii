@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="50x50" href="images/favicon-32x32.png">
     <link rel="manifest" href="/site.webmanifest">
@@ -14,30 +14,20 @@
 html, body {
     margin: 0;
     padding: 0;
-    width: 100vw;
+    width: 100vw; /* 🔥 Ajusta para toda a tela */
     height: 100vh;
-     display: flex;
-    justify-content: center;
-    align-items: center;
     overflow: hidden; /* 🔥 Impede rolagem */
     background: url('images/seaback.webp') no-repeat center center;
     background-size: cover;
-    outline: 5px solid red !important; /* 🔥 Mantém a borda para debug */
 }
 
-
-
-    #canvas {
+canvas {
     display: block;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 1920px; /* 🔥 Agora o tamanho será fixo */
-    height: 1080px;
-    transform: translate(-50%, -50%);
-    background: transparent;
-    
+    width: 100vw !important; /* 🔥 Phaser ocupa tudo */
+    height: 100vh !important;
 }
+
+
 
 
           @keyframes fadeIn {
@@ -56,7 +46,7 @@ html, body {
     width: 100%;
     height: 100%;
     pointer-events: none; /* Não interfere com cliques */
-    z-index: -1; /* Mantém a névoa atrás dos elementos */
+    z-index: 100; /* Mantém a névoa atrás dos elementos */
     overflow: hidden; /* Evita qualquer corte estranho */
 }
 
@@ -112,36 +102,210 @@ html, body {
     display: flex;
     justify-content: center; /* Centraliza a logo */
     align-items: center;
-    z-index: 9999;
+    z-index: 9998;
     font-family: 'Pirata One', serif;
     box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
     padding: 0 15px;
 }
 
-#fpsCounter {
+#fpsCounter, #pingCounter {
+    font-family: Arial, sans-serif;
+    font-weight: lighter;
     position: absolute;
-    left: 15px; /* 🔥 Mantém o FPS no canto esquerdo */
-    font-size: 12px;
+    left: 15px;
+    top: 5px;
+    font-size: 14px;
     font-weight: bold;
     color: whitesmoke;
     text-shadow: 1px 1px 2px black;
 }
+
+#pingCounter {
+    left: 100px; /* 🔥 Ajusta a posição do Ping ao lado do FPS */
+}
+
 
 #gameLogo {
     height: 85px; /* Ajuste conforme o tamanho da logo */
     object-fit: contain;
 }
 
-#gameBorder {
+/* 🔥 Tela de carregamento */
+/* 🏴‍☠️ Melhor fundo pirata, agora cobrindo tudo */
+/* 🏴‍☠️ Fundo Pirata 100% Opaco */
+#loadingScreen {
     position: fixed;
     top: 0;
     left: 0;
-    width: 1920px;
-    height: 1080px;
-    pointer-events: none; /* 🔥 Permite interação com o jogo */
-    border: 25px solid rgba(0, 0, 0, 0.4); /* 🔥 Borda semi-transparente */
-    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5); /* 🔥 Efeito de vinheta */
-    z-index: 9998; /* 🔥 Mantém a borda abaixo do header */
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle, #0d341b 0%, #081a10 40%, #030c08 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+    font-size: 18px;
+    text-align: center;
+    z-index: 99999; /* 🔥 Garante que está acima de tudo */
+}
+
+#loadingScreen::before {
+    content: "";
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    background: radial-gradient(circle, rgba(20, 200, 50, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+    animation: spectralGlow 4s infinite alternate ease-in-out;
+    pointer-events: none;
+}
+
+/* ✨ Pulso da energia amaldiçoada */
+@keyframes spectralGlow {
+    0% { opacity: 0.2; }
+    100% { opacity: 0.5; }
+}
+
+
+
+
+
+/* 🔥 Efeito de rotação para o ícone do volante */
+#loadingIcon {
+    width: 150px;
+    filter: hue-rotate(100deg) brightness(1.2); /* 🔥 Transforma marrom em verde espectral */
+    animation: spin 2s linear infinite;
+}
+
+/* 🔄 Animação de rotação */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-bar {
+    width: 350px;
+    height: 20px;
+    background: url('images/dark-parchment.png'); /* Precisa de uma textura de pergaminho escuro */
+    background-size: cover;
+    border: 3px solid #163b23; /* Moldura verde-acinzentada envelhecida */
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.6);
+}
+
+.floating-flames {
+    position: absolute;
+    width: 10px;
+    height: 20px;
+    background: rgba(50, 255, 100, 0.6);
+    box-shadow: 0px 0px 10px rgba(50, 255, 100, 0.8);
+    border-radius: 50%;
+    opacity: 0.7;
+    animation: floatFlame 4s infinite alternate ease-in-out;
+}
+
+@keyframes floatFlame {
+    0% { transform: translateY(0px) scale(1); opacity: 0.5; }
+    100% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+}
+
+/* 💀 Nome Container Responsivo */
+#nameContainer {
+    position: absolute;
+    width: 40vw; /* 🔥 Adapta ao tamanho da tela */
+    max-width: 500px; /* 🔥 Limite para telas muito grandes */
+    height: auto;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.2vw; /* 🔥 Fonte ajustável */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    border-radius: 15px;
+    padding: 3vh;
+    text-align: center;
+    box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
+    opacity: 0;
+    animation: fadeIn 1s ease-out forwards;
+}
+
+/* 🔥 Estilização do Ícone no Name Container */
+#nameContainer img {
+    width: 25%; /* 🔥 Adapta o tamanho conforme o container */
+    max-width: 120px;
+    height: auto;
+    margin-bottom: 1vh;
+}
+
+/* 🔥 Input Responsivo */
+#playerNameInput {
+    padding: 1.5vh;
+    font-size: 1vw;
+    margin-bottom: 1vh;
+    margin-top: 2vh;
+    width: 80%;
+    text-align: center;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    outline: none;
+    box-shadow: inset 0px 0px 5px rgba(255, 255, 255, 0.2);
+}
+
+/* 🔥 Botão Responsivo */
+#nameContainer button {
+    padding: 1vh 6vw;
+    font-size: 1.5vw;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 2vh;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    transition: 0.3s;
+}
+
+#nameContainer button:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+
+
+
+
+
+
+
+/* 🍺 Rum dourado como preenchimento */
+/* 🍷 Vinho fluindo como preenchimento */
+.loading-progress {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #118d36, #3cf27a, #118d36); /* Verdes espectrais */
+    background-size: 300% 100%;
+    animation: spectralFlow 2s infinite linear; /* Animação da energia */
+    transition: width 0.3s ease-in-out;
+}
+
+/* 💨 Animação para o efeito espectral */
+@keyframes spectralFlow {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 300% 0%; }
 }
 
 
@@ -155,78 +319,25 @@ html, body {
 
 <body>
 <header id="gameHeader">
-    <span id="fpsCounter">FPS: --</span>
+    <span id="fpsCounter">FPS: --</span> 
+    <span id="pingCounter">Ping: -- ms</span>
     <img id="gameLogo" src="images/skull-pirates-with-sword-illustration.png" alt="Game Logo">
 </header>
 
 
 
-<div id="nameContainer" style="
-    position: absolute;
-    width: 50%;
-    max-width: 450px;
-    height: 60%;
-    max-height: 550px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    font-size: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.8);
-    z-index: 1000;
-    border-radius: 15px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
-    opacity: 0;
-    animation: fadeIn 1s ease-out forwards;
-">
+
+
+<div id="nameContainer">
 
     <!-- Ícone da caveira POSICIONADO NO TOPO DA CAIXA -->
-    <img src="images/skull-pirates-with-sword-illustration.png" alt="Pirate Skull" style="
-        width: 150px;
-        height: 150px;
-        margin-bottom: 5px; /* 🔥 Dá espaço entre a caveira e o título */
-    ">
+    <img src="images/skull-pirates-with-sword-illustration.png" alt="Pirate Skull">
 
-    <h2 style="margin-top: 20px; margin-bottom: 5px; font-family: 'Pirata One', cursive; font-size: 30px;">
-        Choose Your Nick
-    </h2>
+    <h2>Choose Your Nick</h2>
 
-    <input type="text" id="playerNameInput"  maxlength="12" style="
-        padding: 15px;
-        font-size: 16px;
-        margin-bottom: 10px;
-        margin-top: 20px;
-        width: 80%;
-        text-align: center;
-        border: none;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        outline: none;
-        box-shadow: inset 0px 0px 5px rgba(255, 255, 255, 0.2);
-    ">
+    <input type="text" id="playerNameInput"  maxlength="12">
 
-    <button onclick="setPlayerName()" style="
-            padding: 10px 60px;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 30px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            border-radius: 8px;
-            transition: 0.3s;
-        " onmouseover="this.style.background='rgba(255, 255, 255, 0.4)'"
-        onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+    <button onclick="setPlayerName()">
         Play
     </button>
 </div>
@@ -237,14 +348,32 @@ html, body {
     <div class="fog-layer" id="fog3"></div>
 </div>
 
-<canvas id="gameCanvas"></canvas>
-<div id="gameBorder"></div>
 
+<div id="loadingScreen">
+    <div class="floating-flames" style="top: 40%; left: 20%;"></div>
+    <div class="floating-flames" style="top: 60%; left: 80%;"></div>
+    <div class="floating-flames" style="top: 30%; left: 50%;"></div>
+
+
+<div class="loading-container">
+
+
+        <img id="loadingIcon" src="images/volante.png" alt="Carregando...">
+        <p>Loading...</p>
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+    </div>
+</div>
+
+
+<canvas id="gameCanvas"></canvas>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/network.js" defer></script>
 <script src="/movement.js" defer></script>
 <script src="/projectiles.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 <script src="/game.js" defer></script>
 <script src="/attack.js" defer></script>
 <script src="/script.js" defer></script>

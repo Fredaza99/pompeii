@@ -3,8 +3,12 @@ let lastClickY = null;
 
 // 🔥 Função para verificar se o jogador clicou em um inimigo
 function getClickedPlayer(event) {
-    let clickX = event.clientX;
-    let clickY = event.clientY;
+    let rect = canvas.getBoundingClientRect(); // 🔥 Obtém o tamanho real do canvas na tela
+    let scaleX = canvas.width / rect.width;  // 🔥 Calcula a escala horizontal
+    let scaleY = canvas.height / rect.height; // 🔥 Calcula a escala vertical
+
+    let clickX = (event.clientX - rect.left) * scaleX; // 🔥 Ajusta X do clique
+    let clickY = (event.clientY - rect.top) * scaleY;  // 🔥 Ajusta Y do clique
 
     for (let id in ships) {
         if (id !== socket.id) { // Evita selecionar a si mesmo
@@ -23,6 +27,7 @@ function getClickedPlayer(event) {
     }
     return null; // Retorna nulo se nenhum inimigo foi clicado
 }
+
 
 function selectTarget(targetId) {
     if (selectedTargetId !== targetId) {
@@ -73,20 +78,19 @@ document.addEventListener("click", (event) => {
 
 // 🔥 Função de ataque (pressionando espaço ou "A")
 function shoot() {
-    if (!selectedTargetId) {
-        return;
-    }
+    if (!selectedTargetId || !canShoot) return; // Se não há alvo ou o disparo está em cooldown, cancela
 
-    if (!canShoot) {
-        return;
-    }
+    console.log(`🔫 Disparando contra ${selectedTargetId}...`);
 
-    console.log(`🔫 Atacando ${selectedTargetId}...`);
-    socket.emit("shoot", { targetId: selectedTargetId });
+    socket.emit("shoot", { targetId: selectedTargetId }); // Envia um único disparo
 
-    canShoot = false;
-    setTimeout(() => { canShoot = true; }, 3000); 
+    canShoot = false; // Bloqueia novos disparos
+    setTimeout(() => {
+        canShoot = true; // Libera o disparo após cooldown
+    }, 3000);
 }
+
+
 
 // 🔥 Atira ao pressionar espaço ou "A"
 document.addEventListener("keydown", (event) => {

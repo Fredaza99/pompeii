@@ -1,8 +1,35 @@
-// 🎮 Configuração do Canvas
+const GAME_WIDTH = 1920;
+const GAME_HEIGHT = 1080;
+
+
 const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const ctx = canvas.getContext("2d", { willReadFrequently: true }); // 🔥 Otimiza leituras do canvas
+
+
+
+const phaserConfig = {
+    type: Phaser.AUTO,
+    width: window.innerWidth, // 🔥 Ajusta para o tamanho da tela
+    height: window.innerHeight,
+    parent: "game-container", // 🔥 Garante que Phaser fique dentro do elemento correto
+    transparent: false, // (ou true se quiser ver o fundo do body)
+    scene: {
+        create: createPhaserScene
+    }
+};
+
+// Inicializa o Phaser APENAS para gerenciar a câmera
+const phaserGame = new Phaser.Game(phaserConfig);
+
+let phaserScene;
+
+function createPhaserScene() {
+    phaserScene = this;
+    this.cameras.main.setBounds(0, 0, 1920, 1080);
+    resizeCamera(); // Ajusta o zoom inicial
+}
+
+
 
 // 🎮 Carrega imagens
 let shipImage = new Image();
@@ -18,9 +45,9 @@ const SPRITE_HEIGHT = 85;
 
 // 🎮 Variáveis de jogo
 let ships = {};
-let projectiles = [];
 const impacts = [];
-
+let isDragging = false;
+let lastPointerX, lastPointerY;
 let glowSize = 30;
 let glowGrowing = true;
 let animationInterval = null;
@@ -31,7 +58,59 @@ let lastEmitTime = 0;
 let selectedTarget = null;
 let selectedTargetId = null;
 let canShoot = true;
-let targetLoopRunning = false; // 🔥 Controle do loop de seleção
+let targetLoopRunning = false;
+const targetFPS = 60;
+let resizeTimer;
+let drawCount = 0;
+const BALL_SPACING = 100; // 🔥 Intervalo entre cada bola no efeito cascata
+const TOTAL_BALLS = 8;
+let resizeCount = 0;
+let drawShipsCount = 0;
+let lastDrawTime = 0; // 🔥 Guarda o último tempo que `drawShips()` foi chamado
+const drawInterval = 16;
+let gameRunning = false;
+let shouldRedraw = false; // 🔥 Flag para controlar a necessidade de redesenho
+
+
+let lastPositions = {}; // 🔥 Guarda a última posição conhecida dos navios
+
+
+function resizeCamera() {
+    resizeCount++;
+    console.log(`🔥 resizeCamera chamado ${resizeCount} vezes`);
+
+    const baseWidth = 1920;
+    const baseHeight = 1080;
+
+    const scaleX = window.innerWidth / baseWidth;
+    const scaleY = window.innerHeight / baseHeight;
+    const scale = Math.min(scaleX, scaleY); // Mantém a proporção correta
+
+    if (phaserScene) {
+        phaserScene.cameras.main.setZoom(scale);
+        phaserScene.cameras.main.centerOn(960, 540); // 🔥 Centraliza no meio da tela
+    }
+
+    // 🔥 Ajusta o canvas para manter o tamanho correto
+    canvas.width = GAME_WIDTH;
+    canvas.height = GAME_HEIGHT;
+    canvas.style.width = `${baseWidth * scale}px`;
+    canvas.style.height = `${baseHeight * scale}px`;
+
+    shouldRedraw = true; // 🔥 Marca que o redesenho é necessário, mas não chama imediatamente!
+}
+
+
+
+// 🔥 Ajusta o zoom e redesenha quando a tela muda
+window.addEventListener("resize", resizeCamera);
+
+function createPhaserScene() {
+    phaserScene = this;
+    this.cameras.main.setBounds(0, 0, 1920, 1080);
+    resizeCamera(); // Ajusta o zoom inicial
+
+}
 
 
 
@@ -39,7 +118,12 @@ let targetLoopRunning = false; // 🔥 Controle do loop de seleção
 
 
 function drawShips() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawShipsCount++; // 🔥 Incrementa contador
+    console.log(`🚢 drawShips foi chamada ${drawShipsCount} vezes`);
+    
+
+
+    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     for (let id in ships) {
         let player = ships[id];
@@ -50,7 +134,6 @@ function drawShips() {
 
         let spriteX = (player.frameIndex || 0) * SPRITE_WIDTH;
 
-        // 🔥 Desenha o navio
         ctx.drawImage(
             shipImage,
             spriteX, 0, SPRITE_WIDTH, SPRITE_HEIGHT,
@@ -62,35 +145,35 @@ function drawShips() {
         let healthPercentage = player.health / 100;
         let barWidth = 100;
         let barHeight = 3;
-        let barY = player.y + 60; // Ajuste de posição vertical da barra
+        let barY = player.y + 60;
 
-        let iconSize = 22; // Ajuste o tamanho conforme necessário
-        let iconX = player.x - (barWidth / 2) - iconSize - 5; // Posiciona à esquerda da barra
+        let iconSize = 22;
+        let iconX = player.x - (barWidth / 2) - iconSize - 5;
         let iconY = barY - (iconSize / 4);
 
-        ctx.drawImage(healthIcon, iconX, iconY, iconSize, iconSize); // Desenha o ícone
+        ctx.drawImage(healthIcon, iconX, iconY, iconSize, iconSize);
 
         ctx.fillStyle = "red";
-        ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth, barHeight); // Fundo da barra
+        ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth, barHeight);
 
         ctx.fillStyle = "green";
-        ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth * healthPercentage, barHeight); // Vida atual
+        ctx.fillRect(player.x - barWidth / 2, player.y + 67, barWidth * healthPercentage, barHeight);
 
-        // 🔥 Exibir nome do jogador acima da barra de vida
         if (player.name) {
             ctx.fillStyle = "white";
             ctx.font = "14px Arial";
             ctx.textAlign = "center";
-            ctx.fillText(player.name, player.x, barY - -2); // Nome acima da barra de vida
+            ctx.fillText(player.name, player.x, barY - -2);
         }
     }
+    
 
     drawProjectiles();
     drawImpacts();
 
-
-    requestAnimationFrame(drawShips);
+    requestAnimationFrame(drawShips); // 🔥 Garante que continue rodando sem sobrecarga
 }
+
 
 
 function drawSelectedTarget() {
@@ -153,18 +236,30 @@ function projectileLoop() {
 }
 
 
+window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        resizeCamera();
+    }, 200); // 🔥 Só chama depois de 200ms sem redimensionamento
+});
+
 
 function gameLoop() {
     let startTime = performance.now(); // ⏳ Medir tempo do frame
+    
+    ctx.fillStyle = "rgba(0, 0, 0, 0.05)"; // 🔥 Fundo semi-transparente para evitar flickering
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // 🔥 Limpa a tela antes de desenhar
+    if (shouldRedraw) {
+        drawShips();  // 🔥 Só redesenha se for necessário
+        shouldRedraw = false;
+    }
 
-    drawShips();
     moveShip();
     drawProjectiles();
     drawImpacts();
     drawSelectedTarget();
-
 
     let endTime = performance.now(); // ⏳ Finaliza tempo do frame
     let frameTime = endTime - startTime;
@@ -174,6 +269,8 @@ function gameLoop() {
 
     requestAnimationFrame(gameLoop); // 🔥 Continua o loop
 }
+
+
 
 // 🚀 Inicia o loop do jogo corretamente
 shipImage.onload = () => {
