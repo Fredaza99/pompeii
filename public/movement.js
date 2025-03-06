@@ -46,22 +46,23 @@ function getDirectionByShipPosition(shipX, shipY, clickX, clickY) {
 
 
 
-function animateCardinalDirections(direction) {
+function animateCardinalDirections(ship, direction) {
+    if (!ship) return;
     if (animationInterval) clearInterval(animationInterval);
 
     let frames = [];
-    if (direction === "N") frames = [1, 2]; // 🔹 Norte agora alterna entre SE e SO (correto!)
-    else if (direction === "S") frames = [3, 0]; // 🔹 Sul agora alterna entre NE e NO (correto!)
-    else if (direction === "L") frames = [3, 1]; // 🔹 Leste alterna entre NE e SE
-    else if (direction === "O") frames = [2, 0]; // 🔹 Oeste alterna entre NO e SO
-    else if (direction === "NE") frames = [1]; // 🔹 Nordeste (Frame fixo)
-    else if (direction === "SE") frames = [3]; // 🔹 Sudeste (Frame fixo)
-    else if (direction === "NO") frames = [2]; // 🔹 Noroeste (Frame fixo)
-    else if (direction === "SO") frames = [0]; // 🔹 Sudoeste (Frame fixo)
+    if (direction === "N") frames = [1, 2];
+    else if (direction === "S") frames = [3, 0];
+    else if (direction === "L") frames = [3, 1];
+    else if (direction === "O") frames = [2, 0];
+    else if (direction === "NE") frames = [1];
+    else if (direction === "SE") frames = [3];
+    else if (direction === "NO") frames = [2];
+    else if (direction === "SO") frames = [0];
 
     let currentFrame = 0;
     animationInterval = setInterval(() => {
-        ship.frameIndex = frames[currentFrame];
+        ship.frameIndex = frames[currentFrame]; // 🔥 Agora `ship` é atualizado corretamente!
         currentFrame = (currentFrame + 1) % frames.length;
     }, 180);
 }
@@ -69,63 +70,34 @@ function animateCardinalDirections(direction) {
 
 
 
-function moveShip() {
-    if (!ship) return; // 🔥 Apenas checa se ship existe, mas não bloqueia a função
 
-    isMoving = true; // 🔥 Marca que a função está rodando para evitar chamadas duplicadas
 
-    function step() {
-        if (!ship) {
-            isMoving = false;
-            return;
-        }
+function updateShipAnimation(ship) {
+    if (!ship) return;
 
-        let dx = ship.targetX - ship.x;
-        let dy = ship.targetY - ship.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
+    let dx = ship.targetX - ship.x;
+    let dy = ship.targetY - ship.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > ship.speed) { // 🔥 Se ainda não chegou ao destino
-            ship.x += (dx / distance) * ship.speed;
-            ship.y += (dy / distance) * ship.speed;
-            let angle = Math.atan2(dy, dx);
+    if (distance > 1) { // 🔥 Se o barco está se movendo
+        let newDirection = getDirectionByShipPosition(ship.x, ship.y, ship.targetX, ship.targetY);
 
-            // 🔥 Ajuste baseado no tamanho do barco para alinhar melhor com as bordas
-            const HALF_SPRITE_WIDTH = SPRITE_WIDTH / 2;
-            const HALF_SPRITE_HEIGHT = SPRITE_HEIGHT / 2;
+        if (newDirection !== lastStableDirection) {
+            lastStableDirection = newDirection;
 
-            // 🔥 Agora pode ir até as bordas REAIS sem erro de alinhamento
-            ship.x = Math.max(HALF_SPRITE_WIDTH, Math.min(1920 - HALF_SPRITE_WIDTH, ship.x));
-            ship.y = Math.max(HALF_SPRITE_HEIGHT, Math.min(1080 - HALF_SPRITE_HEIGHT, ship.y));
-
-            // 🔥 Atualiza a direção do navio baseada na posição real do barco e no clique
-            let newDirection = getDirectionByShipPosition(ship.x, ship.y, ship.targetX, ship.targetY);
-
-            if (newDirection !== lastDirection) {
-                lastDirection = newDirection;
-                if (!["N", "S", "L", "O"].includes(newDirection)) {
-                    clearInterval(animationInterval);
-                    ship.frameIndex = getFrameIndex(angle); // 🔥 Frame fixo para direções diagonais
-                } else {
-                    animateCardinalDirections(newDirection); // 🔥 Animação intercalada para direções cardeais
-                }
+            if (!["N", "S", "L", "O"].includes(newDirection)) {
+                clearInterval(animationInterval);
+                ship.frameIndex = getFrameIndex(Math.atan2(dy, dx)); // 🔥 Define frame fixo para diagonais
+            } else {
+                animateCardinalDirections(newDirection); // 🔥 Animação intercalada para direções cardeais
             }
-
-            // 🔥 Envia a posição atualizada ao servidor
-            socket.emit("move", {
-                x: ship.x,
-                y: ship.y,
-                angle: angle,
-                frameIndex: ship.frameIndex
-            });
-
-            requestAnimationFrame(step); // 🔥 Continua movendo até chegar no destino
-        } else {
-            isMoving = false; // 🔥 Para o movimento quando chegar ao destino
         }
+    } else {
+        clearInterval(animationInterval); // 🔥 Para a animação quando o barco parar
     }
-
-    requestAnimationFrame(step); // 🔥 Inicia o movimento corretamente
 }
+
+
 
 
 

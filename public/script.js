@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let loadingScreen = document.getElementById("loadingScreen");
     let progressBar = document.querySelector(".loading-progress");
 
-    let assetsToLoad = 6; // 🔥 Ajuste este número conforme necessário
+    let assetsToLoad = 1; // 🔥 Ajuste este número conforme necessário
     let assetsLoaded = 0;
 
     function updateProgress() {

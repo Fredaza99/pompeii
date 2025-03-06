@@ -62,6 +62,10 @@ document.addEventListener("click", (event) => {
             return; // 🔥 Cancela a execução para evitar chamadas desnecessárias
         }
 
+        // 🔥 Envia a intenção de movimento para o servidor
+        socket.emit("move", { targetX: correctedX, targetY: correctedY });
+
+        // 🔥 Atualiza o destino no cliente apenas para animação
         ship.targetX = correctedX;
         ship.targetY = correctedY;
 
@@ -74,6 +78,7 @@ document.addEventListener("click", (event) => {
         lastClickY = correctedY;
     }
 });
+
 
 
 // 🔥 Função de ataque (pressionando espaço ou "A")

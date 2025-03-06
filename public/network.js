@@ -1,4 +1,4 @@
-const socket = io("https://pompeii.up.railway.app/");
+const socket = io("https://pompeii.up.railway.app/"); // 🔥 Conecta ao servidor
 
 
 
@@ -30,12 +30,41 @@ socket.on("setInitialPosition", (player) => {
 });
 
 
+socket.on("updatePositions", (serverPlayers) => {
+    for (let id in serverPlayers) {
+        if (ships[id]) {
+            ships[id].x = serverPlayers[id].x;
+            ships[id].y = serverPlayers[id].y;
+            ships[id].angle = serverPlayers[id].angle;
+            ships[id].frameIndex = serverPlayers[id].frameIndex;
 
-socket.on("updatePlayer", (player) => {
-    if (ships[player.id]) {
-        ships[player.id] = player;
+            updateShipAnimation(ships[id]); // 🔥 Garante que a animação está sendo aplicada corretamente
+        }
     }
 });
+
+
+
+
+
+socket.on("updatePlayer", (data) => {
+    if (ships[data.id]) {
+        ships[data.id].x = data.x;
+        ships[data.id].y = data.y;
+        ships[data.id].angle = data.angle;
+        ships[data.id].frameIndex = data.frameIndex;
+
+        updateShipAnimation(ships[data.id]); // 🔥 Agora a animação será atualizada corretamente!
+    }
+});
+
+
+socket.on("updatePlayerFrame", (data) => {
+    if (ships[data.id]) {
+        ships[data.id].frameIndex = data.frameIndex;
+    }
+});
+
 
 
 socket.on("removePlayer", (playerId) => {
