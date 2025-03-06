@@ -20,8 +20,15 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+const DIAGONAL_TOLERANCE = 0.5; // 🔥 Define o limite para diferenciar cardeal e diagonal
+
+
+
 let players = {};
 let projectiles = [];
+
+let lastUpdateTime = Date.now();
+
 
 io.on("connection", (socket) => {
     console.log("Jogador conectado, aguardando nome:", socket.id);
@@ -49,15 +56,152 @@ io.on("connection", (socket) => {
         socket.emit("pingResponse"); // 🔥 Retorna a resposta para o cliente
     });
 
+
+    function getFrameIndex(angle) {
+        if (angle >= -Math.PI / 4 && angle < Math.PI / 4) {
+            return 3; // Nordeste (NE)
+        } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
+            return 0; // Noroeste (NO)
+        } else if (angle >= -3 * Math.PI / 4 && angle < -Math.PI / 4) {
+            return 1; // Sudeste (SE)
+        } else {
+            return 2; // Sudoeste (SO)
+        }
+    }
+
+    function getDirectionByShipPosition(shipX, shipY, targetX, targetY) {
+        let dx = targetX - shipX;
+        let dy = targetY - shipY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 20) return "diagonal"; // 🔥 Se o destino for muito perto, mantém a direção atual
+
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI); // 🔥 Converte para graus
+
+        if (angle >= -20 && angle < 20) return "L";  // 🔹 Leste
+        if (angle >= 20 && angle < 70) return "SE";  // 🔹 Sudeste
+        if (angle >= 70 && angle < 110) return "S";  // 🔹 Sul
+        if (angle >= 110 && angle < 160) return "SO";  // 🔹 Sudoeste
+        if (angle >= 160 || angle <= -160) return "O";  // 🔹 Oeste
+        if (angle >= -160 && angle < -110) return "NO";  // 🔹 Noroeste
+        if (angle >= -110 && angle < -70) return "N";  // 🔹 Norte
+        if (angle >= -70 && angle < -20) return "NE";  // 🔹 Nordeste
+
+        return "diagonal";  // 🔥 Se não encaixar, define como diagonal genérica
+    }
+
+    function animateCardinalDirections(player, direction) {
+        if (!player) return;
+
+        if (player.animationInterval) {
+            clearInterval(player.animationInterval);
+            player.animationInterval = null;
+        }
+
+        let frames = [];
+        if (direction === "N") frames = [1, 2];
+        else if (direction === "S") frames = [3, 0];
+        else if (direction === "L") frames = [3, 1];
+        else if (direction === "O") frames = [2, 0];
+
+        let currentFrame = 0;
+
+        player.animationInterval = setInterval(() => {
+            player.frameIndex = frames[currentFrame];
+            io.emit("updatePlayerFrame", { id: player.id, frameIndex: player.frameIndex });
+            currentFrame = (currentFrame + 1) % frames.length;
+        }, 180);
+    }
+
+
+
+
+
+
+
+    function updatePlayerPositions() {
+        let now = Date.now();
+        let deltaTime = (now - lastUpdateTime) / 1000;
+        lastUpdateTime = now;
+
+        let speed = 200;
+
+        for (let playerId in players) {
+            let player = players[playerId];
+
+            if (player.targetX !== undefined && player.targetY !== undefined) {
+                let dx = player.targetX - player.x;
+                let dy = player.targetY - player.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > speed * deltaTime) {
+                    player.x += (dx / distance) * speed * deltaTime;
+                    player.y += (dy / distance) * speed * deltaTime;
+
+                    player.angle = Math.atan2(dy, dx);
+                    let newDirection = getDirectionByShipPosition(player.x, player.y, player.targetX, player.targetY);
+
+                    if (newDirection !== player.lastStableDirection) {
+                        player.lastStableDirection = newDirection;
+
+                        if (!["N", "S", "L", "O"].includes(newDirection)) {
+                            if (player.animationInterval) {
+                                clearInterval(player.animationInterval);
+                                player.animationInterval = null;
+                            }
+                            player.frameIndex = getFrameIndex(player.angle);
+                        } else {
+                            animateCardinalDirections(player, newDirection);
+                        }
+                    }
+                } else {
+                    player.x = player.targetX;
+                    player.y = player.targetY;
+
+                    if (player.animationInterval) {
+                        clearInterval(player.animationInterval);
+                        player.animationInterval = null;
+                    }
+                }
+            }
+        }
+
+        let sanitizedPlayers = {};
+        for (let id in players) {
+            sanitizedPlayers[id] = { ...players[id] };
+            delete sanitizedPlayers[id].animationInterval;
+        }
+
+        io.emit("updatePositions", sanitizedPlayers);
+    }
+
+
+
+
+
+
+
+
+    setInterval(updatePlayerPositions, 1000 / 60); // 🔥 Atualiza 60 vezes por segundo
+
+
+
     socket.on("move", (data) => {
         if (players[socket.id]) {
-            players[socket.id].x = data.x;
-            players[socket.id].y = data.y;
-            players[socket.id].angle = data.angle;
-            players[socket.id].frameIndex = data.frameIndex;
-            io.emit("updatePlayer", { id: socket.id, ...players[socket.id] });
+            players[socket.id].targetX = data.targetX;
+            players[socket.id].targetY = data.targetY;
+
+            let dx = players[socket.id].targetX - players[socket.id].x;
+            let dy = players[socket.id].targetY - players[socket.id].y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                players[socket.id].angle = Math.atan2(dy, dx); // 🔥 Atualiza o ângulo corretamente
+            }
         }
     });
+
+
 
 
 
